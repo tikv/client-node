@@ -13,6 +13,7 @@ const RawClient = require('.');
     console.log(value.toString())
     value = await client.get("k3", "default")
     console.log(value.toString())
-    value = await client.get("k4", "default")
-    console.log(value.toString())
+    await client.delete("k4", "default")
+    await client.get("k4", "default")
+
 })();
