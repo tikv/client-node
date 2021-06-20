@@ -1,0 +1,21 @@
+[package]
+name = "client-node"
+version = "0.1.0"
+description = "A TiKV client in Node.js."
+authors = ["Mossaka"]
+license = "Apache-2.0"
+edition = "2018"
+exclude = ["index.node"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies.neon]
+version = "0.8"
+default-features = false
+features = ["napi-6", "event-queue-api"]
+
+[dependencies]
+tikv-client = "0.1.0"
+tokio = { version="1.6.1", features=["full"] }
+lazy_static = "1"
