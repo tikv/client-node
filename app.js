@@ -16,4 +16,7 @@ const RawClient = require('.');
     await client.delete("k4", "default")
     await client.get("k4", "default")
 
+    values = await client.batch_get(["k1", "k2"], "default")
+    console.log(values)
+
 })();

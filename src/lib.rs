@@ -84,29 +84,22 @@ impl RawClient {
         let queue = cx.queue();
 
         RUNTIME.spawn(async move {
-            let result = inner.get(key).await;
+            let value: Option<Vec<u8>> = inner.get(key).await.unwrap();
             queue.send(move |mut cx| {
                 let callback = callback.into_inner(&mut cx);
                 let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = match result {
-                    Ok(value) => {
-                        /*  let js_array = JsArray::new(&mut cx, content.len() as u32);
-                        for (i, obj) in content.iter().enumerate() {
-                            let js_string = cx.number(*obj as f64);
-                            js_array.set(&mut cx, i as u32, js_string).unwrap();
-                        }
-                        vec![cx.undefined().upcast(), js_array.upcast()] */
-                        vec![
-                            cx.undefined().upcast(),
-                            match value {
-                                Some(content) => cx
-                                    .string(std::str::from_utf8(&content).unwrap().to_owned())
-                                    .upcast(),
-                                None => cx.undefined().upcast(),
-                            },
-                        ]
+                let args: Vec<Handle<JsValue>> = match value {
+                    Some(content) => {
+                        let content = std::str::from_utf8(&content).unwrap().to_owned();
+                        // let js_array = JsArray::new(&mut cx, content.len() as u32);
+                        // for (i, obj) in content.iter().enumerate() {
+                        //     let js_string = cx.number(*obj as f64);
+                        //     js_array.set(&mut cx, i as u32, js_string).unwrap();
+                        // }
+                        // vec![cx.undefined().upcast(), js_array.upcast()]
+                        vec![cx.undefined().upcast(), cx.string(content).upcast()]
                     }
-                    Err(err) => vec![cx.error(err.to_string())?.upcast(), cx.undefined().upcast()],
+                    None => vec![cx.null().upcast(), cx.undefined().upcast()],
                 };
                 callback.call(&mut cx, this, args)?;
                 Ok(())
@@ -150,13 +143,59 @@ impl RawClient {
         let client = cx
             .this()
             .downcast_or_throw::<JsBox<RawClient>, _>(&mut cx)?;
-        todo!()
+        let keys = cx.argument::<JsArray>(0)?.to_vec(&mut cx)?;
+        let keys = keys
+            .into_iter()
+            .map(|k| {
+                k.downcast::<JsString, _>(&mut cx)
+                    .or_throw(&mut cx)
+                    .unwrap()
+                    .value(&mut cx)
+            })
+            .collect::<Vec<String>>();
+        let cf = cx.argument::<JsString>(1)?.value(&mut cx);
+        let callback = cx.argument::<JsFunction>(2)?.root(&mut cx);
+
+        let inner = client.inner.with_cf(cf.try_into().unwrap());
+        let queue = cx.queue();
+
+        RUNTIME.spawn(async move {
+            let result = inner.batch_get(keys).await;
+            queue.send(move |mut cx| {
+                let callback = callback.into_inner(&mut cx);
+                let this = cx.undefined();
+                let args: Vec<Handle<JsValue>> = match result {
+                    Ok(values) => {
+                        let js_array = JsArray::new(&mut cx, values.len() as u32);
+                        for (i, obj) in values.iter().enumerate() {
+                            let pair = JsArray::new(&mut cx, 2 as u32);
+                            let v1 = cx.string(
+                                std::str::from_utf8(&Vec::from(obj.0.clone()))
+                                    .unwrap()
+                                    .to_owned(),
+                            );
+                            let v2 = cx.string(std::str::from_utf8(&obj.1).unwrap().to_owned());
+                            pair.set(&mut cx, 0 as u32, v1)?;
+                            pair.set(&mut cx, 1 as u32, v2)?;
+                            js_array.set(&mut cx, i as u32, pair).unwrap();
+                        }
+                        vec![cx.null().upcast(), js_array.upcast()]
+                    }
+                    Err(err) => vec![cx.error(err.to_string())?.upcast(), cx.undefined().upcast()],
+                };
+                callback.call(&mut cx, this, args)?;
+                Ok(())
+            });
+        });
+
+        Ok(cx.undefined())
     }
 
     pub fn scan(mut cx: FunctionContext) -> JsResult<JsUndefined> {
         let client = cx
             .this()
             .downcast_or_throw::<JsBox<RawClient>, _>(&mut cx)?;
+
         todo!()
     }
 
@@ -164,6 +203,7 @@ impl RawClient {
         let client = cx
             .this()
             .downcast_or_throw::<JsBox<RawClient>, _>(&mut cx)?;
+
         todo!()
     }
 
@@ -171,6 +211,7 @@ impl RawClient {
         let client = cx
             .this()
             .downcast_or_throw::<JsBox<RawClient>, _>(&mut cx)?;
+
         todo!()
     }
 
@@ -178,6 +219,7 @@ impl RawClient {
         let client = cx
             .this()
             .downcast_or_throw::<JsBox<RawClient>, _>(&mut cx)?;
+
         todo!()
     }
 
@@ -185,6 +227,7 @@ impl RawClient {
         let client = cx
             .this()
             .downcast_or_throw::<JsBox<RawClient>, _>(&mut cx)?;
+
         todo!()
     }
 }

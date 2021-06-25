@@ -36,7 +36,7 @@ $ node app.js
 v1
 v2
 v3
-v4
+[ [ 'k1', 'v1' ], [ 'k2', 'v2' ] ]
 ```
 
 ## Available Scripts

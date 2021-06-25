@@ -8,9 +8,11 @@ const connect_async = promisify(inner.connect);
 const get_async = promisify(inner.get);
 const put_async = promisify(inner.put);
 const delete_async = promisify(inner.delete);
+const batch_get_async = promisify(inner.batch_get);
 
 class RawClient {
     constructor(boxed) {
+        // TODO: error out if the parameter `boxed` is not what we want. 
         this.boxed = boxed
     }
 
@@ -24,6 +26,10 @@ class RawClient {
 
     delete(key, cf) {
         return delete_async.call(this.boxed, key, cf)
+    }
+
+    batch_get(keys, cf) {
+        return batch_get_async.call(this.boxed, keys, cf)
     }
 }
 
