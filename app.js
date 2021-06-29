@@ -22,7 +22,11 @@ const RawClient = require(".");
     ],
     "default"
   );
+  await client.batch_delete(["k1", "k2", "k5"], "default");
+  values = await client.batch_get(
+    ["k1", "k2", "k3", "k4", "k5", "k6"],
+    "default"
+  );
 
-  values = await client.batch_get(["k5", "k6"], "default");
   console.log(values);
 })();
