@@ -63,7 +63,7 @@ pub fn k_pairs_to_js_array<'a>(cx: &mut TaskContext<'a>, keys: Vec<Key>) -> Hand
     js_array
 }
 
-pub fn js_array_to_rust_iterator<'a>(
+pub fn js_array_to_rust_keys<'a>(
     cx: &mut FunctionContext<'a>,
     array: Handle<JsArray>,
 ) -> impl IntoIterator<Item = impl Into<Key>> {

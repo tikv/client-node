@@ -150,7 +150,7 @@ impl RawClient {
             .this()
             .downcast_or_throw::<JsBox<RawClient>, _>(&mut cx)?;
         let keys = cx.argument::<JsArray>(0)?;
-        let keys = utils::js_array_to_rust_iterator(&mut cx, keys);
+        let keys = utils::js_array_to_rust_keys(&mut cx, keys);
         let cf = cx.argument::<JsString>(1)?.value(&mut cx);
         let callback = cx.argument::<JsFunction>(2)?.root(&mut cx);
 
@@ -289,16 +289,64 @@ impl RawClient {
         let client = cx
             .this()
             .downcast_or_throw::<JsBox<RawClient>, _>(&mut cx)?;
+        let keys = cx.argument::<JsArray>(0)?;
+        let keys = utils::js_array_to_rust_keys(&mut cx, keys);
+        let cf = cx.argument::<JsString>(1)?.value(&mut cx);
 
-        todo!()
+        let callback = cx.argument::<JsFunction>(2)?.root(&mut cx);
+        let inner = client.inner.with_cf(cf.try_into().unwrap());
+        let queue = cx.queue();
+        RUNTIME.spawn(async move {
+            let result = inner.batch_delete(keys).await;
+            queue.send(move |mut cx| {
+                let callback = callback.into_inner(&mut cx);
+                let this = cx.undefined();
+                let args: Vec<Handle<JsValue>> = match result {
+                    Ok(_) => {
+                        vec![cx.null().upcast(), cx.undefined().upcast()]
+                    }
+                    Err(err) => vec![cx.error(err.to_string())?.upcast()],
+                };
+                callback.call(&mut cx, this, args)?;
+                Ok(())
+            });
+        });
+
+        Ok(cx.undefined())
     }
 
     pub fn delete_range(mut cx: FunctionContext) -> JsResult<JsUndefined> {
         let client = cx
             .this()
             .downcast_or_throw::<JsBox<RawClient>, _>(&mut cx)?;
+        let start = cx.argument::<JsString>(0)?.value(&mut cx).into_bytes();
+        let end = cx.argument::<JsString>(1)?.value(&mut cx).into_bytes();
+        let include_start = cx.argument::<JsBoolean>(2)?.value(&mut cx);
+        let include_end = cx.argument::<JsBoolean>(3)?.value(&mut cx);
+        let cf = cx.argument::<JsString>(4)?.value(&mut cx);
 
-        todo!()
+        let callback = cx.argument::<JsFunction>(5)?.root(&mut cx);
+        let inner = client.inner.with_cf(cf.try_into().unwrap());
+        let queue = cx.queue();
+        RUNTIME.spawn(async move {
+            let range = utils::to_bound_range(Some(start), Some(end), include_start, include_end);
+
+            let result = inner.delete_range(range).await;
+            queue.send(move |mut cx| {
+                let callback = callback.into_inner(&mut cx);
+                let this = cx.undefined();
+                let args: Vec<Handle<JsValue>> = match result {
+                    Ok(_) => {
+                        vec![cx.null().upcast(), cx.undefined().upcast()]
+                    }
+                    Err(err) => vec![cx.error(err.to_string())?.upcast()],
+                };
+                callback.call(&mut cx, this, args)?;
+                Ok(())
+            });
+        });
+
+        Ok(cx.undefined())
     }
 }
 
