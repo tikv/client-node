@@ -4,16 +4,16 @@ const { promisify } = require("util");
 
 const inner = require("./index.node");
 
-const connect_async = promisify(inner.connect);
-const get_async = promisify(inner.get);
-const put_async = promisify(inner.put);
-const delete_async = promisify(inner.delete);
-const batch_get_async = promisify(inner.batch_get);
-const batch_put_async = promisify(inner.batch_put);
-const batch_delete_async = promisify(inner.batch_delete);
-const delete_range_async = promisify(inner.delete_range);
-const scan_async = promisify(inner.scan);
-const scan_keys_async = promisify(inner.scan_keys);
+const connect_async = promisify(inner.raw_connect);
+const get_async = promisify(inner.raw_get);
+const put_async = promisify(inner.raw_put);
+const delete_async = promisify(inner.raw_delete);
+const batch_get_async = promisify(inner.raw_batch_get);
+const batch_put_async = promisify(inner.raw_batch_put);
+const batch_delete_async = promisify(inner.raw_batch_delete);
+const delete_range_async = promisify(inner.raw_delete_range);
+const scan_async = promisify(inner.raw_scan);
+const scan_keys_async = promisify(inner.raw_scan_keys);
 
 class RawClient {
   constructor(pd_endpoint) {

@@ -10,6 +10,12 @@ use neon::{
 use tikv_client::{Key, KvPair};
 
 use crate::RawClient;
+use lazy_static::lazy_static;
+use tokio::runtime::Runtime;
+
+lazy_static! {
+    pub(crate) static ref RUNTIME: Runtime = Runtime::new().unwrap();
+}
 
 pub fn bytes_to_js_string<'a>(cx: &mut TaskContext<'a>, bytes: Vec<u8>) -> Handle<'a, JsValue> {
     let content = std::str::from_utf8(&bytes).unwrap().to_owned();
