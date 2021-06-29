@@ -56,17 +56,14 @@ impl RawClient {
         let queue = cx.queue();
 
         RUNTIME.spawn(async move {
-            let result = inner.put(key, value).await;
+            let result = inner
+                .put(key, value)
+                .await
+                .map(|values| utils::CommonTypes::from(values));
             queue.send(move |mut cx| {
                 let callback = callback.into_inner(&mut cx);
                 let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = vec![
-                    match result {
-                        Ok(_) => cx.null().upcast(),
-                        Err(err) => cx.error(err.to_string())?.upcast(),
-                    },
-                    cx.undefined().upcast(),
-                ];
+                let args: Vec<Handle<JsValue>> = utils::result_to_js_array(&mut cx, result);
                 callback.call(&mut cx, this, args)?;
                 Ok(())
             });
@@ -87,7 +84,7 @@ impl RawClient {
         let queue = cx.queue();
 
         RUNTIME.spawn(async move {
-            let value: Option<Vec<u8>> = inner.get(key).await.unwrap();
+            let value: Option<Vec<u8>> = inner.get(key).await.unwrap(); //TODO: this is a wrong implementation
             queue.send(move |mut cx| {
                 let callback = callback.into_inner(&mut cx);
                 let this = cx.undefined();
@@ -126,17 +123,14 @@ impl RawClient {
         let inner = client.inner.with_cf(cf.try_into().unwrap());
         let queue = cx.queue();
         RUNTIME.spawn(async move {
-            let result = inner.delete(key).await;
+            let result = inner
+                .delete(key)
+                .await
+                .map(|values| utils::CommonTypes::from(values));
             queue.send(move |mut cx| {
                 let callback = callback.into_inner(&mut cx);
                 let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = vec![
-                    match result {
-                        Ok(_) => cx.null().upcast(),
-                        Err(err) => cx.error(err.to_string())?.upcast(),
-                    },
-                    cx.undefined().upcast(),
-                ];
+                let args: Vec<Handle<JsValue>> = utils::result_to_js_array(&mut cx, result);
                 callback.call(&mut cx, this, args)?;
                 Ok(())
             });
@@ -158,19 +152,14 @@ impl RawClient {
         let queue = cx.queue();
 
         RUNTIME.spawn(async move {
-            let result = inner.batch_get(keys).await;
+            let result = inner
+                .batch_get(keys)
+                .await
+                .map(|values| utils::CommonTypes::from(values));
             queue.send(move |mut cx| {
                 let callback = callback.into_inner(&mut cx);
                 let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = match result {
-                    Ok(values) => {
-                        vec![
-                            cx.null().upcast(),
-                            utils::kv_pairs_to_js_array(&mut cx, values).upcast(),
-                        ]
-                    }
-                    Err(err) => vec![cx.error(err.to_string())?.upcast(), cx.undefined().upcast()],
-                };
+                let args: Vec<Handle<JsValue>> = utils::result_to_js_array(&mut cx, result);
                 callback.call(&mut cx, this, args)?;
                 Ok(())
             });
@@ -196,19 +185,14 @@ impl RawClient {
         RUNTIME.spawn(async move {
             let range = utils::to_bound_range(Some(start), Some(end), include_start, include_end);
 
-            let result = inner.scan(range, limit).await;
+            let result = inner
+                .scan(range, limit)
+                .await
+                .map(|values| utils::CommonTypes::from(values));
             queue.send(move |mut cx| {
                 let callback = callback.into_inner(&mut cx);
                 let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = match result {
-                    Ok(values) => {
-                        vec![
-                            cx.null().upcast(),
-                            utils::kv_pairs_to_js_array(&mut cx, values).upcast(),
-                        ]
-                    }
-                    Err(err) => vec![cx.error(err.to_string())?.upcast()],
-                };
+                let args: Vec<Handle<JsValue>> = utils::result_to_js_array(&mut cx, result);
                 callback.call(&mut cx, this, args)?;
                 Ok(())
             });
@@ -234,19 +218,14 @@ impl RawClient {
         RUNTIME.spawn(async move {
             let range = utils::to_bound_range(Some(start), Some(end), include_start, include_end);
 
-            let result = inner.scan_keys(range, limit).await;
+            let result = inner
+                .scan_keys(range, limit)
+                .await
+                .map(|values| utils::CommonTypes::from(values));
             queue.send(move |mut cx| {
                 let callback = callback.into_inner(&mut cx);
                 let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = match result {
-                    Ok(values) => {
-                        vec![
-                            cx.null().upcast(),
-                            utils::k_pairs_to_js_array(&mut cx, values).upcast(),
-                        ]
-                    }
-                    Err(err) => vec![cx.error(err.to_string())?.upcast()],
-                };
+                let args: Vec<Handle<JsValue>> = utils::result_to_js_array(&mut cx, result);
                 callback.call(&mut cx, this, args)?;
                 Ok(())
             });
@@ -267,16 +246,14 @@ impl RawClient {
         let inner = client.inner.with_cf(cf.try_into().unwrap());
         let queue = cx.queue();
         RUNTIME.spawn(async move {
-            let result = inner.batch_put(pairs).await;
+            let result = inner
+                .batch_put(pairs)
+                .await
+                .map(|values| utils::CommonTypes::from(values));
             queue.send(move |mut cx| {
                 let callback = callback.into_inner(&mut cx);
                 let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = match result {
-                    Ok(_) => {
-                        vec![cx.null().upcast(), cx.undefined().upcast()]
-                    }
-                    Err(err) => vec![cx.error(err.to_string())?.upcast()],
-                };
+                let args: Vec<Handle<JsValue>> = utils::result_to_js_array(&mut cx, result);
                 callback.call(&mut cx, this, args)?;
                 Ok(())
             });
@@ -297,16 +274,14 @@ impl RawClient {
         let inner = client.inner.with_cf(cf.try_into().unwrap());
         let queue = cx.queue();
         RUNTIME.spawn(async move {
-            let result = inner.batch_delete(keys).await;
+            let result = inner
+                .batch_delete(keys)
+                .await
+                .map(|values| utils::CommonTypes::from(values));
             queue.send(move |mut cx| {
                 let callback = callback.into_inner(&mut cx);
                 let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = match result {
-                    Ok(_) => {
-                        vec![cx.null().upcast(), cx.undefined().upcast()]
-                    }
-                    Err(err) => vec![cx.error(err.to_string())?.upcast()],
-                };
+                let args: Vec<Handle<JsValue>> = utils::result_to_js_array(&mut cx, result);
                 callback.call(&mut cx, this, args)?;
                 Ok(())
             });
@@ -331,16 +306,14 @@ impl RawClient {
         RUNTIME.spawn(async move {
             let range = utils::to_bound_range(Some(start), Some(end), include_start, include_end);
 
-            let result = inner.delete_range(range).await;
+            let result = inner
+                .delete_range(range)
+                .await
+                .map(|values| utils::CommonTypes::from(values));
             queue.send(move |mut cx| {
                 let callback = callback.into_inner(&mut cx);
                 let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = match result {
-                    Ok(_) => {
-                        vec![cx.null().upcast(), cx.undefined().upcast()]
-                    }
-                    Err(err) => vec![cx.error(err.to_string())?.upcast()],
-                };
+                let args: Vec<Handle<JsValue>> = utils::result_to_js_array(&mut cx, result);
                 callback.call(&mut cx, this, args)?;
                 Ok(())
             });

@@ -6,7 +6,8 @@
   "scripts": {
     "build": "cargo-cp-artifact -nc index.node -- cargo build --message-format=json-render-diagnostics",
     "install": "npm run build",
-    "test": "cargo test"
+    "test": "cargo test",
+    "demo": "node app.js"
   },
   "author": "Mossaka",
   "license": "Apache-2.0",

@@ -19,6 +19,52 @@ pub fn bytes_to_js_string<'a>(cx: &mut TaskContext<'a>, bytes: Vec<u8>) -> Handl
 //     cx.string(content).upcast()
 // }
 
+pub enum CommonTypes {
+    Unit(()),
+    Keys(Vec<Key>),
+    KvPairs(Vec<KvPair>),
+}
+
+impl From<()> for CommonTypes {
+    fn from(item: ()) -> Self {
+        CommonTypes::Unit(())
+    }
+}
+
+impl From<Vec<Key>> for CommonTypes {
+    fn from(item: Vec<Key>) -> Self {
+        CommonTypes::Keys(item)
+    }
+}
+
+impl From<Vec<KvPair>> for CommonTypes {
+    fn from(item: Vec<KvPair>) -> Self {
+        CommonTypes::KvPairs(item)
+    }
+}
+
+pub fn result_to_js_array<'a>(
+    cx: &mut TaskContext<'a>,
+    result: Result<CommonTypes, tikv_client::Error>,
+) -> Vec<Handle<'a, JsValue>> {
+    match result {
+        Ok(values) => match values {
+            CommonTypes::Unit(_) => vec![cx.null().upcast(), cx.undefined().upcast()],
+            CommonTypes::Keys(keys) => {
+                vec![cx.null().upcast(), rust_keys_to_js_array(cx, keys).upcast()]
+            }
+            CommonTypes::KvPairs(pairs) => vec![
+                cx.null().upcast(),
+                rust_pairs_to_js_array(cx, pairs).upcast(),
+            ],
+        },
+        Err(err) => vec![
+            cx.error(err.to_string()).unwrap().upcast(),
+            cx.undefined().upcast(),
+        ],
+    }
+}
+
 pub fn error_to_js_value<'a, T, C: Context<'a>>(
     cx: &mut C,
     err: tikv_client::Error,
@@ -30,7 +76,7 @@ pub fn unit_to_js_undefined<'a, T, C: Context<'a>>(cx: &mut C, _unit: T) -> Hand
     cx.undefined().upcast()
 }
 
-pub fn kv_pairs_to_js_array<'a>(
+pub fn rust_pairs_to_js_array<'a>(
     cx: &mut TaskContext<'a>,
     values: Vec<KvPair>,
 ) -> Handle<'a, JsArray> {
@@ -50,7 +96,7 @@ pub fn kv_pairs_to_js_array<'a>(
     js_array
 }
 
-pub fn k_pairs_to_js_array<'a>(cx: &mut TaskContext<'a>, keys: Vec<Key>) -> Handle<'a, JsArray> {
+pub fn rust_keys_to_js_array<'a>(cx: &mut TaskContext<'a>, keys: Vec<Key>) -> Handle<'a, JsArray> {
     let js_array = JsArray::new(cx, keys.len() as u32);
     for (i, obj) in keys.iter().enumerate() {
         let v1 = cx.string(
