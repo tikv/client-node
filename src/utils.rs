@@ -56,23 +56,19 @@ pub fn result_to_js_array<'a>(
     result: Result<CommonTypes, tikv_client::Error>,
 ) -> Vec<Handle<'a, JsValue>> {
     match result {
-        Ok(values) => match values {
-            CommonTypes::Unit(_) => vec![cx.null().upcast(), cx.undefined().upcast()],
-            CommonTypes::Keys(keys) => {
-                vec![cx.null().upcast(), rust_keys_to_js_array(cx, keys).upcast()]
-            }
-            CommonTypes::KvPairs(pairs) => vec![
-                cx.null().upcast(),
-                rust_pairs_to_js_array(cx, pairs).upcast(),
-            ],
-            CommonTypes::Client(client) => vec![
-                cx.null().upcast(),
-                cx.boxed(RawClient {
-                    inner: Arc::new(client),
-                })
-                .upcast(),
-            ],
-        },
+        Ok(values) => vec![
+            cx.null().upcast(),
+            match values {
+                CommonTypes::Unit(_) => cx.undefined().upcast(),
+                CommonTypes::Keys(keys) => rust_keys_to_js_array(cx, keys).upcast(),
+                CommonTypes::KvPairs(pairs) => rust_pairs_to_js_array(cx, pairs).upcast(),
+                CommonTypes::Client(client) => cx
+                    .boxed(RawClient {
+                        inner: Arc::new(client),
+                    })
+                    .upcast(),
+            },
+        ],
         Err(err) => vec![
             cx.error(err.to_string()).unwrap().upcast(),
             cx.undefined().upcast(),
@@ -86,15 +82,15 @@ pub fn rust_pairs_to_js_array<'a>(
 ) -> Handle<'a, JsArray> {
     let js_array = JsArray::new(cx, values.len() as u32);
     for (i, obj) in values.iter().enumerate() {
-        let pair = JsArray::new(cx, 2 as u32);
+        let pair = JsArray::new(cx, 2);
         let v1 = cx.string(
             std::str::from_utf8(&Vec::from(obj.0.clone()))
                 .unwrap()
                 .to_owned(),
         );
         let v2 = cx.string(std::str::from_utf8(&obj.1).unwrap().to_owned());
-        pair.set(cx, 0 as u32, v1).unwrap();
-        pair.set(cx, 1 as u32, v2).unwrap();
+        pair.set(cx, 0, v1).unwrap();
+        pair.set(cx, 1, v2).unwrap();
         js_array.set(cx, i as u32, pair).unwrap();
     }
     js_array
@@ -139,21 +135,21 @@ pub fn js_array_to_rust_pairs<'a>(
         let pair_result = k.downcast::<JsArray, _>(cx).or_throw(cx);
         match pair_result {
             Ok(pair) => {
-                let pair_0 = pair
-                    .get(cx, 0 as u32)
-                    .unwrap()
-                    .downcast::<JsString, _>(cx)
-                    .or_throw(cx)
-                    .unwrap()
-                    .value(cx); // TODO: remove unwrap here
-                let pair_1 = pair
-                    .get(cx, 1 as u32)
-                    .unwrap()
-                    .downcast::<JsString, _>(cx)
-                    .or_throw(cx)
-                    .unwrap()
-                    .value(cx); // TODO: remove unwrap here
-                pairs.push(KvPair::new(pair_0, pair_1));
+                let args: Vec<String> = vec![0_u32, 1_u32]
+                    .into_iter()
+                    .map(|i| {
+                        pair.get(cx, i as u32)
+                            .unwrap()
+                            .downcast::<JsString, _>(cx)
+                            .or_throw(cx)
+                            .unwrap() // TODO: remove unwrap here
+                            .value(cx)
+                    })
+                    .collect();
+                pairs.push(KvPair::new(
+                    args.get(0).unwrap().to_owned(),
+                    args.get(1).unwrap().to_owned(),
+                ));
             }
             Err(err) => println!("{}", err.to_string()),
         }
