@@ -153,7 +153,7 @@ pub fn rust_keys_to_js_array<'a>(cx: &mut TaskContext<'a>, keys: Vec<Key>) -> Ha
 pub fn js_array_to_rust_keys<'a>(
     cx: &mut FunctionContext<'a>,
     array: Handle<JsArray>,
-) -> impl IntoIterator<Item = impl Into<Key>> {
+) -> Vec<String> {
     let array = array.to_vec(cx).unwrap(); // TODO: remove unwrap here
     array
         .into_iter()

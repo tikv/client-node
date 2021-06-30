@@ -39,9 +39,14 @@ const tikv = require(".");
   await txn.put("k2", "v2");
   await txn.put("k3", "v3");
   await txn.put("k4", "v4");
-  value1 = await txn.get("k3");
-  await txn.delete("k4");
-  value2 = await txn.get("k4");
   await txn.commit();
-  console.log(value1, value2);
+
+  const snapshot = await client.snapshot(await client.current_timestamp(), true);
+  await snapshot.get("k3");
+  await snapshot.batch_get(["k1", "k4"]);
+
+  const result = await snapshot.scan("k1", "k10", 10, false, false)
+  result.forEach(element => {
+    console.log(element);
+  });
 })();

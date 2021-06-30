@@ -73,9 +73,9 @@ checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
 name = "boringssl-src"
-version = "0.2.0"
+version = "0.3.0+688fc5c"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0511b9f0b739706e05b7279ece5dfc1932a42839cf005cb0f00420a3fea27c96"
+checksum = "f901accdf830d2ea2f4e27f923a5e1125cd8b1a39ab578b9db1a42d578a6922b"
 dependencies = [
  "cmake",
 ]
@@ -404,9 +404,9 @@ checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
 
 [[package]]
 name = "grpcio"
-version = "0.8.3"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99cf790272c5fb75a2fd7f2e8282e910d0fe0ed1d954cb29b07b74228694302a"
+checksum = "2a1b8dd4e79b81ccfd5b9282dfc6d3d4e97568291c383c1bc98756a0f21e39d9"
 dependencies = [
  "bytes",
  "futures 0.3.15",
@@ -432,9 +432,9 @@ dependencies = [
 
 [[package]]
 name = "grpcio-sys"
-version = "0.8.1"
+version = "0.9.0+1.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f89a56d830be4dddc939c377c95e3b77e30c86a8df99c20095c34cf9038447b"
+checksum = "0cdbbb3010823156c3153b75db391c0f47beeec57353a33dfa38126b265cc1d5"
 dependencies = [
  "bindgen",
  "boringssl-src",
@@ -1442,8 +1442,7 @@ dependencies = [
 [[package]]
 name = "tikv-client"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26904b386ca52ce25b3a620b397e6e4e93c4fd06d13c2c5936d9ac597f897263"
+source = "git+https://github.com/tikv/client-rust.git?branch=master#24fa2680d22e3600e81b2fa29abda5410a23b391"
 dependencies = [
  "async-trait",
  "derive-new",
@@ -1469,8 +1468,7 @@ dependencies = [
 [[package]]
 name = "tikv-client-common"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72fc3bb3fbec1f2a3354d4bbe48501b23ea47b79da2ffaedeadcc8a6183188e4"
+source = "git+https://github.com/tikv/client-rust.git?branch=master#24fa2680d22e3600e81b2fa29abda5410a23b391"
 dependencies = [
  "futures 0.3.15",
  "grpcio",
@@ -1484,8 +1482,7 @@ dependencies = [
 [[package]]
 name = "tikv-client-pd"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8cadef1633d4e7952d9a3a88211f03f71e9f90769a5b50c40b5eccc06408977"
+source = "git+https://github.com/tikv/client-rust.git?branch=master#24fa2680d22e3600e81b2fa29abda5410a23b391"
 dependencies = [
  "async-trait",
  "futures 0.3.15",
@@ -1498,8 +1495,7 @@ dependencies = [
 [[package]]
 name = "tikv-client-proto"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9707c63c11c19b87b6eb3df40c6103d0f1e2f06b53445bad91a8c9e06407d9b"
+source = "git+https://github.com/tikv/client-rust.git?branch=master#24fa2680d22e3600e81b2fa29abda5410a23b391"
 dependencies = [
  "futures 0.3.15",
  "grpcio",
@@ -1513,8 +1509,7 @@ dependencies = [
 [[package]]
 name = "tikv-client-store"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ab348b60ef0a384985c488e25bf35721956b3b45332945f0841f9ac8a693586"
+source = "git+https://github.com/tikv/client-rust.git?branch=master#24fa2680d22e3600e81b2fa29abda5410a23b391"
 dependencies = [
  "async-trait",
  "derive-new",

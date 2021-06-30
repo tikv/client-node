@@ -16,6 +16,6 @@ default-features = false
 features = ["napi-6", "event-queue-api"]
 
 [dependencies]
-tikv-client = "0.1.0"
+tikv-client = { git="https://github.com/tikv/client-rust.git", branch="master" }
 tokio = { version="1.6.1", features=["full"] }
 lazy_static = "1"
