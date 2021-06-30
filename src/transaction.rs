@@ -135,24 +135,19 @@ impl Snapshot {
         let queue = cx.queue();
 
         RUNTIME.spawn(async move {
-            let value = inner.lock().await.get(key).await; //TODO: this is a wrong implementation
-            match value {
-                Ok(val) => {
-                    queue.send(move |mut cx| {
-                        let callback = callback.into_inner(&mut cx);
-                        let this = cx.undefined();
-                        let args: Vec<Handle<JsValue>> = match val {
-                            Some(content) => {
-                                vec![cx.null().upcast(), bytes_to_js_string(&mut cx, content)]
-                            }
-                            None => vec![cx.null().upcast(), cx.undefined().upcast()],
-                        };
-                        callback.call(&mut cx, this, args)?;
-                        Ok(())
-                    });
-                }
-                Err(err) => println!("Err {}", err.to_string()),
-            }
+            let value = inner.lock().await.get(key).await.unwrap();
+            queue.send(move |mut cx| {
+                let callback = callback.into_inner(&mut cx);
+                let this = cx.undefined();
+                let args: Vec<Handle<JsValue>> = match value {
+                    Some(content) => {
+                        vec![cx.null().upcast(), bytes_to_js_string(&mut cx, content)]
+                    }
+                    None => vec![cx.null().upcast(), cx.undefined().upcast()],
+                };
+                callback.call(&mut cx, this, args)?;
+                Ok(())
+            });
         });
 
         Ok(cx.undefined())
@@ -167,7 +162,7 @@ impl Snapshot {
         let queue = cx.queue();
 
         RUNTIME.spawn(async move {
-            let value = inner.lock().await.key_exists(key).await.unwrap(); //TODO: this is a wrong implementation
+            let value = inner.lock().await.key_exists(key).await.unwrap();
             queue.send(move |mut cx| {
                 let callback = callback.into_inner(&mut cx);
                 let this = cx.undefined();
@@ -281,7 +276,7 @@ impl Transaction {
         let queue = cx.queue();
 
         RUNTIME.spawn(async move {
-            let value = inner.lock().await.get(key).await.unwrap(); //TODO: this is a wrong implementation
+            let value = inner.lock().await.get(key).await.unwrap();
             queue.send(move |mut cx| {
                 let callback = callback.into_inner(&mut cx);
                 let this = cx.undefined();
@@ -317,7 +312,7 @@ impl Transaction {
         let queue = cx.queue();
 
         RUNTIME.spawn(async move {
-            let value = inner.lock().await.get_for_update(key).await.unwrap(); //TODO: this is a wrong implementation
+            let value = inner.lock().await.get_for_update(key).await.unwrap();
             queue.send(move |mut cx| {
                 let callback = callback.into_inner(&mut cx);
                 let this = cx.undefined();
@@ -353,7 +348,7 @@ impl Transaction {
         let queue = cx.queue();
 
         RUNTIME.spawn(async move {
-            let value = inner.lock().await.key_exists(key).await.unwrap(); //TODO: this is a wrong implementation
+            let value = inner.lock().await.key_exists(key).await.unwrap();
             queue.send(move |mut cx| {
                 let callback = callback.into_inner(&mut cx);
                 let this = cx.undefined();

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use neon::prelude::*;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::Mutex;
 
 mod raw;
 mod transaction;

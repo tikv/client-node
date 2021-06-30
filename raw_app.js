@@ -1,4 +1,3 @@
-const { Transaction } = require(".");
 const tikv = require(".");
 
 (async () => {
@@ -32,21 +31,3 @@ const tikv = require(".");
   console.log(values);
 })();
 
-(async () => {
-  const client = await new tikv.TransactionClient("127.0.0.1:2379");
-  const txn = await client.begin(true);
-  await txn.put("k1", "v1");
-  await txn.put("k2", "v2");
-  await txn.put("k3", "v3");
-  await txn.put("k4", "v4");
-  await txn.commit();
-
-  const snapshot = await client.snapshot(await client.current_timestamp(), true);
-  await snapshot.get("k3");
-  await snapshot.batch_get(["k1", "k4"]);
-
-  const result = await snapshot.scan("k1", "k10", 10, false, false)
-  result.forEach(element => {
-    console.log(element);
-  });
-})();
