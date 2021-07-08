@@ -25,95 +25,72 @@ pub fn bytes_to_js_string<'a>(cx: &mut TaskContext<'a>, bytes: Vec<u8>) -> Handl
     cx.string(content).upcast()
 }
 
-// pub fn bytes_to_js_string<'a>(cx: &'a mut TaskContext, bytes: Vec<u8>) -> Handle<'a, JsValue> {
+// pub fn bytes_to_js_string<'a>(cx: &mut TaskContext<'a>, bytes: Vec<u8>) -> Handle<'a, JsValue> {
 //     let content = std::str::from_utf8(&bytes).unwrap().to_owned();
 //     cx.string(content).upcast()
 // }
 
-pub enum CommonTypes {
-    Unit(()),
-    Keys(Vec<Key>),
-    KvPairs(Vec<KvPair>),
-    RawClient(tikv_client::RawClient),
-    TransactionClient(tikv_client::TransactionClient),
-    Transaction(tikv_client::Transaction),
-    Timestamp(Option<tikv_client::Timestamp>),
+pub trait ToJS {
+    fn to_js_value<'a>(self, cx: &mut TaskContext<'a>) -> Handle<'a, JsValue>;
 }
 
-impl From<()> for CommonTypes {
-    fn from(_: ()) -> Self {
-        CommonTypes::Unit(())
+impl ToJS for () {
+    fn to_js_value<'a>(self, cx: &mut TaskContext<'a>) -> Handle<'a, JsValue> {
+        cx.undefined().upcast()
     }
 }
 
-impl From<Vec<Key>> for CommonTypes {
-    fn from(item: Vec<Key>) -> Self {
-        CommonTypes::Keys(item)
+impl ToJS for Vec<Key> {
+    fn to_js_value<'a>(self, cx: &mut TaskContext<'a>) -> Handle<'a, JsValue> {
+        rust_keys_to_js_array(cx, self).upcast()
     }
 }
 
-impl From<Vec<KvPair>> for CommonTypes {
-    fn from(item: Vec<KvPair>) -> Self {
-        CommonTypes::KvPairs(item)
-    }
-}
-impl From<tikv_client::RawClient> for CommonTypes {
-    fn from(item: tikv_client::RawClient) -> Self {
-        CommonTypes::RawClient(item)
-    }
-}
-impl From<tikv_client::TransactionClient> for CommonTypes {
-    fn from(item: tikv_client::TransactionClient) -> Self {
-        CommonTypes::TransactionClient(item)
-    }
-}
-impl From<tikv_client::Transaction> for CommonTypes {
-    fn from(item: tikv_client::Transaction) -> Self {
-        CommonTypes::Transaction(item)
-    }
-}
-impl From<Option<tikv_client::Timestamp>> for CommonTypes {
-    fn from(item: Option<tikv_client::Timestamp>) -> Self {
-        CommonTypes::Timestamp(item)
+impl ToJS for Vec<KvPair> {
+    fn to_js_value<'a>(self, cx: &mut TaskContext<'a>) -> Handle<'a, JsValue> {
+        rust_pairs_to_js_array(cx, self).upcast()
     }
 }
 
-pub fn result_to_js_array<'a>(
-    cx: &mut TaskContext<'a>,
-    result: Result<CommonTypes, tikv_client::Error>,
-) -> Vec<Handle<'a, JsValue>> {
-    match result {
-        Ok(values) => vec![
-            cx.null().upcast(),
-            match values {
-                CommonTypes::Unit(_) => cx.undefined().upcast(),
-                CommonTypes::Keys(keys) => rust_keys_to_js_array(cx, keys).upcast(),
-                CommonTypes::KvPairs(pairs) => rust_pairs_to_js_array(cx, pairs).upcast(),
-                CommonTypes::RawClient(client) => cx
-                    .boxed(RawClient {
-                        inner: Arc::new(client),
-                    })
-                    .upcast(),
-                CommonTypes::TransactionClient(client) => cx
-                    .boxed(TransactionClient {
-                        inner: Arc::new(client),
-                    })
-                    .upcast(),
-                CommonTypes::Transaction(client) => cx
-                    .boxed(Transaction {
-                        inner: Arc::new(Mutex::new(client)),
-                    })
-                    .upcast(),
-                CommonTypes::Timestamp(timestamp) => match timestamp {
-                    None => cx.undefined().upcast(),
-                    Some(t) => cx.number(t.version() as f64).upcast(),
-                },
-            },
-        ],
-        Err(err) => vec![
-            cx.error(err.to_string()).unwrap().upcast(),
-            cx.undefined().upcast(),
-        ],
+impl ToJS for tikv_client::RawClient {
+    fn to_js_value<'a>(self, cx: &mut TaskContext<'a>) -> Handle<'a, JsValue> {
+        cx.boxed(RawClient {
+            inner: Arc::new(self),
+        })
+        .upcast()
+    }
+}
+
+impl ToJS for tikv_client::TransactionClient {
+    fn to_js_value<'a>(self, cx: &mut TaskContext<'a>) -> Handle<'a, JsValue> {
+        cx.boxed(TransactionClient {
+            inner: Arc::new(self),
+        })
+        .upcast()
+    }
+}
+
+impl ToJS for tikv_client::Transaction {
+    fn to_js_value<'a>(self, cx: &mut TaskContext<'a>) -> Handle<'a, JsValue> {
+        cx.boxed(Transaction {
+            inner: Arc::new(Mutex::new(self)),
+        })
+        .upcast()
+    }
+}
+
+impl<T: ToJS> ToJS for Option<T> {
+    fn to_js_value<'a>(self, cx: &mut TaskContext<'a>) -> Handle<'a, JsValue> {
+        match self {
+            None => cx.undefined().upcast(),
+            Some(t) => t.to_js_value(cx),
+        }
+    }
+}
+
+impl ToJS for tikv_client::Timestamp {
+    fn to_js_value<'a>(self, cx: &mut TaskContext<'a>) -> Handle<'a, JsValue> {
+        cx.number(self.version() as f64).upcast()
     }
 }
 
@@ -225,16 +202,23 @@ pub fn to_bound_range(
     tikv_client::BoundRange::from((start_bound, end_bound))
 }
 
-pub fn send_result<T: Into<CommonTypes>>(
+pub fn send_result<T: 'static + ToJS + Send>(
+    // TODO: #18 do I have to use static lifetime here?
     queue: EventQueue,
     callback: Root<JsFunction>,
     result: Result<T, tikv_client::Error>,
 ) -> Result<(), neon::result::Throw> {
-    let result = result.map(|values| values.into());
     queue.send(move |mut cx| {
+        let result = result.map(|op| op.to_js_value(&mut cx));
         let callback = callback.into_inner(&mut cx);
         let this = cx.undefined();
-        let args: Vec<Handle<JsValue>> = result_to_js_array(&mut cx, result);
+        let args: Vec<Handle<JsValue>> = match result {
+            Ok(values) => vec![cx.null().upcast(), values],
+            Err(err) => vec![
+                cx.error(err.to_string()).unwrap().upcast(),
+                cx.undefined().upcast(),
+            ],
+        };
         callback.call(&mut cx, this, args)?;
         Ok(())
     });
