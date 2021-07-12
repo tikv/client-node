@@ -30,7 +30,7 @@ pub fn bytes_to_js_string<'a>(cx: &mut TaskContext<'a>, bytes: Vec<u8>) -> Handl
 //     cx.string(content).upcast()
 // }
 
-pub trait ToJS {
+pub trait ToJS: 'static + Send {
     fn to_js_value<'a>(self, cx: &mut TaskContext<'a>) -> Handle<'a, JsValue>;
 }
 
@@ -154,7 +154,7 @@ pub fn js_array_to_rust_keys<'a>(
     cx: &mut FunctionContext<'a>,
     array: Handle<JsArray>,
 ) -> Vec<String> {
-    let array = array.to_vec(cx).unwrap(); // TODO: remove unwrap here
+    let array = array.to_vec(cx).unwrap(); // TODO: #21 remove unwrap here
     array
         .into_iter()
         .map(|k| {
@@ -170,7 +170,7 @@ pub fn js_array_to_rust_pairs<'a>(
     cx: &mut FunctionContext<'a>,
     array: Handle<JsArray>,
 ) -> impl IntoIterator<Item = impl Into<KvPair>> {
-    let array = array.to_vec(cx).unwrap(); // TODO: remove unwrap here
+    let array = array.to_vec(cx).unwrap(); // TODO: #21 remove unwrap here
     let mut pairs = vec![];
     for k in array.into_iter() {
         let pair_result = k.downcast::<JsArray, _>(cx).or_throw(cx);
@@ -183,7 +183,7 @@ pub fn js_array_to_rust_pairs<'a>(
                             .unwrap()
                             .downcast::<JsString, _>(cx)
                             .or_throw(cx)
-                            .unwrap() // TODO: remove unwrap here
+                            .unwrap() // TODO: #21 remove unwrap here
                             .value(cx)
                     })
                     .collect();
@@ -225,12 +225,12 @@ pub fn to_bound_range(
     tikv_client::BoundRange::from((start_bound, end_bound))
 }
 
-pub fn send_result<T: 'static + ToJS + Send>(
+pub fn send_result<T: ToJS>(
     // TODO: #18 do I have to use static lifetime here?
     queue: EventQueue,
     callback: Root<JsFunction>,
     result: Result<T, tikv_client::Error>,
-) -> Result<(), neon::result::Throw> {
+) {
     queue.send(move |mut cx| {
         let result = result.map(|op| op.to_js_value(&mut cx));
         let callback = callback.into_inner(&mut cx);
@@ -245,5 +245,4 @@ pub fn send_result<T: 'static + ToJS + Send>(
         callback.call(&mut cx, this, args)?;
         Ok(())
     });
-    Ok(())
 }

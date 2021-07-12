@@ -2,7 +2,7 @@
 
 const { promisify } = require("util");
 
-const inner = require("./index.node");
+const inner = require("../../index.node");
 
 const connect_async = promisify(inner.raw_connect);
 const get_async = promisify(inner.raw_get);
@@ -42,7 +42,6 @@ const snapshot_scan_keys_async = promisify(inner.snapshot_scan_keys);
 class RawClient {
   constructor(pd_endpoint) {
     return (async () => {
-      // TODO: error out if the parameter `boxed` is not what we want.
       this.boxed = await connect_async(pd_endpoint);
       return this;
     })();
@@ -187,7 +186,6 @@ class Snapshot {
 class TransactionClient {
   constructor(pd_endpoint) {
     return (async () => {
-      // TODO: error out if the parameter `boxed` is not what we want.
       this.boxed = await txn_connect_async(pd_endpoint);
       return this;
     })();
@@ -221,6 +219,6 @@ class TransactionClient {
 module.exports = {
   RawClient: RawClient,
   TransactionClient: TransactionClient,
-  Transaction: Transaction, // TODO: let's find out if we need to export these 
+  Transaction: Transaction, // TODO: #20 let's find out if we need to export these 
   Snapshot: Snapshot
 };

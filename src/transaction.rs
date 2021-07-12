@@ -17,7 +17,7 @@ impl TransactionClient {
         let queue = cx.queue();
         RUNTIME.spawn(async move {
             let result = result.await;
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
         Ok(cx.undefined())
     }
@@ -37,7 +37,7 @@ impl TransactionClient {
             } else {
                 inner.begin_optimistic().await
             };
-            send_result(queue, callback, inner).unwrap();
+            send_result(queue, callback, inner);
         });
         Ok(cx.undefined())
     }
@@ -61,7 +61,7 @@ impl TransactionClient {
                     TransactionOptions::new_optimistic()
                 },
             );
-            send_result(queue, callback, Ok(inner)).unwrap();
+            send_result(queue, callback, Ok(inner));
         });
         Ok(cx.undefined())
     }
@@ -76,7 +76,7 @@ impl TransactionClient {
         let queue = cx.queue();
         RUNTIME.spawn(async move {
             let result = inner.current_timestamp().await;
-            send_result(queue, callback, result.map(|op| Some(op))).unwrap();
+            send_result(queue, callback, result.map(|op| Some(op)));
         });
         Ok(cx.undefined())
     }
@@ -94,7 +94,7 @@ impl TransactionClient {
             let result = inner
                 .gc(tikv_client::Timestamp::from_version(safepoint))
                 .await;
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
         Ok(cx.undefined())
     }
@@ -149,7 +149,7 @@ impl Snapshot {
                 .batch_get(keys)
                 .await
                 .map(|kvpairs| kvpairs.collect::<Vec<KvPair>>());
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())
@@ -188,7 +188,7 @@ impl Snapshot {
                 .scan(range, limit)
                 .await
                 .map(|kvpairs| kvpairs.collect::<Vec<KvPair>>());
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())
@@ -214,7 +214,7 @@ impl Snapshot {
                 .scan_keys(range, limit)
                 .await
                 .map(|kvpairs| kvpairs.collect::<Vec<Key>>());
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())
@@ -294,7 +294,7 @@ impl Transaction {
                 .batch_get(keys)
                 .await
                 .map(|kvpairs| kvpairs.collect::<Vec<KvPair>>());
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())
@@ -313,7 +313,7 @@ impl Transaction {
 
         RUNTIME.spawn(async move {
             let result = inner.lock().await.batch_get_for_update(keys).await;
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())
@@ -341,7 +341,7 @@ impl Transaction {
                 .scan(range, limit)
                 .await
                 .map(|kvpairs| kvpairs.collect::<Vec<KvPair>>());
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())
@@ -369,7 +369,7 @@ impl Transaction {
                 .scan_keys(range, limit)
                 .await
                 .map(|kvpairs| kvpairs.collect::<Vec<Key>>());
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())
@@ -388,7 +388,7 @@ impl Transaction {
 
         RUNTIME.spawn(async move {
             let result = inner.lock().await.lock_keys(keys).await;
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())
@@ -406,7 +406,7 @@ impl Transaction {
 
         RUNTIME.spawn(async move {
             let result = inner.lock().await.put(key, value).await;
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())
@@ -424,7 +424,7 @@ impl Transaction {
 
         RUNTIME.spawn(async move {
             let result = inner.lock().await.insert(key, value).await;
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())
@@ -441,7 +441,7 @@ impl Transaction {
 
         RUNTIME.spawn(async move {
             let result = inner.lock().await.delete(key).await;
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())
@@ -457,7 +457,7 @@ impl Transaction {
 
         RUNTIME.spawn(async move {
             let result = inner.lock().await.commit().await;
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())

@@ -21,5 +21,8 @@
   "bugs": {
     "url": "https://github.com/Mossaka/client-node/issues"
   },
-  "homepage": "https://github.com/Mossaka/client-node#readme"
+  "homepage": "https://github.com/Mossaka/client-node#readme",
+  "dependencies": {
+    "deasync": "^0.1.21"
+  }
 }

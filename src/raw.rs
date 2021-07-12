@@ -13,7 +13,7 @@ impl RawClient {
         let queue = cx.queue();
         RUNTIME.spawn(async move {
             let result = result.await;
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
         Ok(cx.undefined())
     }
@@ -32,7 +32,7 @@ impl RawClient {
 
         RUNTIME.spawn(async move {
             let result = inner.put(key, value).await;
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())
@@ -69,7 +69,7 @@ impl RawClient {
         let queue = cx.queue();
         RUNTIME.spawn(async move {
             let result = inner.delete(key).await;
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())
@@ -89,7 +89,7 @@ impl RawClient {
 
         RUNTIME.spawn(async move {
             let result = inner.batch_get(keys).await;
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())
@@ -113,7 +113,7 @@ impl RawClient {
             let range = to_bound_range(Some(start), Some(end), include_start, include_end);
 
             let result = inner.scan(range, limit).await;
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())
@@ -137,7 +137,7 @@ impl RawClient {
             let range = to_bound_range(Some(start), Some(end), include_start, include_end);
 
             let result = inner.scan_keys(range, limit).await;
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())
@@ -156,7 +156,7 @@ impl RawClient {
         let queue = cx.queue();
         RUNTIME.spawn(async move {
             let result = inner.batch_put(pairs).await;
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())
@@ -175,7 +175,7 @@ impl RawClient {
         let queue = cx.queue();
         RUNTIME.spawn(async move {
             let result = inner.batch_delete(keys).await;
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())
@@ -199,7 +199,7 @@ impl RawClient {
             let range = to_bound_range(Some(start), Some(end), include_start, include_end);
 
             let result = inner.delete_range(range).await;
-            send_result(queue, callback, result).unwrap();
+            send_result(queue, callback, result);
         });
 
         Ok(cx.undefined())
