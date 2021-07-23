@@ -7,19 +7,15 @@ pub static TRANSACTION_ERROR: OnceCell<Root<JsFunction>> = OnceCell::new();
 // Extension trait to allow throwing custom errors like `TRANSACTION_ERROR.throw(&mut cx)`
 pub trait CustomError {
     // This doesn't take any arguments, but could easily take a message
-    fn throw<'a, C, T>(&self, cx: &mut C) -> JsResult<T>
-    where
-        C: Context<'a>,
-        T: Value;
+    fn throw<'a, C>(&self, cx: &mut C) -> JsResult<'a, JsObject>
+        where C: Context<'a>;
 }
 
 // Implement `CustomError` for ALL errors in a `OnceCell`. This only needs to be
 // done _once_ even if other errors are added.
 impl CustomError for OnceCell<Root<JsFunction>> {
-    fn throw<'a, C, T>(&self, cx: &mut C) -> JsResult<T>
-    where
-        C: Context<'a>,
-        T: Value,
+    fn throw<'a, C>(&self, cx: &mut C) -> JsResult<'a, JsObject>
+        where C: Context<'a> 
     {
         let args = Vec::<Handle<JsValue>>::with_capacity(0);
         let error = self
@@ -28,7 +24,7 @@ impl CustomError for OnceCell<Root<JsFunction>> {
             .to_inner(cx);
 
         // Use `.construct` to call this as a constructor instead of a normal function
-        error.construct(cx, args).and_then(|err| cx.throw(err))
+        error.construct(cx, args)
     }
 }
 

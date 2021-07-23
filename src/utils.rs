@@ -240,7 +240,7 @@ pub fn send_result<T: ToJS>(
             Ok(values) => vec![cx.null().upcast(), values],
             Err(err) => match err {
                 tikv_client::Error::OperationAfterCommitError =>  vec![
-                    TRANSACTION_ERROR.get().expect("Expected module to be initialized").to_inner(&mut cx).construct(&mut cx, error_args).unwrap().upcast(),
+                    TRANSACTION_ERROR.throw(&mut cx).unwrap().upcast(),
                     cx.undefined().upcast(),
                 ],
                 _ =>  vec![
