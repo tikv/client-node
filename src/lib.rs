@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
+use error::init;
 use neon::prelude::*;
 use tokio::sync::Mutex;
 
 mod raw;
 mod transaction;
 mod utils;
+mod error;
 
 pub struct RawClient {
     inner: Arc<tikv_client::RawClient>,
@@ -73,5 +75,7 @@ fn main(mut cx: ModuleContext) -> NeonResult<()> {
     cx.export_function("snapshot_batch_get", Snapshot::batch_get)?;
     cx.export_function("snapshot_scan", Snapshot::scan)?;
     cx.export_function("snapshot_scan_keys", Snapshot::scan_keys)?;
+
+    cx.export_function("init", init)?;
     Ok(())
 }

@@ -1,5 +1,4 @@
-const { get } = require("http");
-const tikv = require("./tikv_client");
+const tikv = require("../tikv_client");
 
 const client = new tikv.TransactionClient("127.0.0.1:2379");
 const txn = client.begin(true);

@@ -1,4 +1,4 @@
-const tikv = require("./tikv_client");
+const tikv = require("../tikv_client");
 
 const client = new tikv.RawClient("127.0.0.1:2379");
 

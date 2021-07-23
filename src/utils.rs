@@ -12,7 +12,7 @@ use tikv_client::{Key, KvPair};
 
 use tikv_client::TimestampExt;
 
-use crate::{RawClient, Snapshot, Transaction, TransactionClient};
+use crate::{RawClient, Snapshot, Transaction, TransactionClient, error::TRANSACTION_ERROR, error::CustomError};
 use lazy_static::lazy_static;
 use tokio::{runtime::Runtime, sync::Mutex};
 
@@ -235,12 +235,19 @@ pub fn send_result<T: ToJS>(
         let result = result.map(|op| op.to_js_value(&mut cx));
         let callback = callback.into_inner(&mut cx);
         let this = cx.undefined();
+        let error_args = Vec::<Handle<JsValue>>::with_capacity(0);
         let args: Vec<Handle<JsValue>> = match result {
             Ok(values) => vec![cx.null().upcast(), values],
-            Err(err) => vec![
-                cx.error(err.to_string()).unwrap().upcast(),
-                cx.undefined().upcast(),
-            ],
+            Err(err) => match err {
+                tikv_client::Error::OperationAfterCommitError =>  vec![
+                    TRANSACTION_ERROR.get().expect("Expected module to be initialized").to_inner(&mut cx).construct(&mut cx, error_args).unwrap().upcast(),
+                    cx.undefined().upcast(),
+                ],
+                _ =>  vec![
+                    cx.error(err.to_string()).unwrap().upcast(),
+                    cx.undefined().upcast(),
+                ],
+            }
         };
         callback.call(&mut cx, this, args)?;
         Ok(())

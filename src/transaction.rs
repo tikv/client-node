@@ -110,8 +110,8 @@ impl Snapshot {
         let queue = cx.queue();
 
         RUNTIME.spawn(async move {
-            let value = inner.lock().await.get(key).await.unwrap();
-            send_result(queue, callback, Ok(value));
+            let value = inner.lock().await.get(key).await;
+            send_result(queue, callback, value);
         });
 
         Ok(cx.undefined())
@@ -126,8 +126,8 @@ impl Snapshot {
         let queue = cx.queue();
 
         RUNTIME.spawn(async move {
-            let value = inner.lock().await.key_exists(key).await.unwrap();
-            send_result(queue, callback, Ok(value));
+            let value = inner.lock().await.key_exists(key).await;
+            send_result(queue, callback, value);
         });
 
         Ok(cx.undefined())
@@ -161,14 +161,14 @@ impl Snapshot {
             start
                 .downcast::<JsString, _>(&mut cx)
                 .or_throw(&mut cx)
-                .unwrap()
+                .expect("Start should be a string")
                 .value(&mut cx)
                 .into_bytes()
         });
         let end = cx.argument_opt(1).map(|end| {
             end.downcast::<JsString, _>(&mut cx)
                 .or_throw(&mut cx)
-                .unwrap()
+                .expect("End should be a string")
                 .value(&mut cx)
                 .into_bytes()
         });
@@ -233,8 +233,8 @@ impl Transaction {
         let queue = cx.queue();
 
         RUNTIME.spawn(async move {
-            let value = inner.lock().await.get(key).await.unwrap();
-            send_result(queue, callback, Ok(value));
+            let value = inner.lock().await.get(key).await;
+            send_result(queue, callback, value);
         });
 
         Ok(cx.undefined())
@@ -251,8 +251,8 @@ impl Transaction {
         let queue = cx.queue();
 
         RUNTIME.spawn(async move {
-            let value = inner.lock().await.get_for_update(key).await.unwrap();
-            send_result(queue, callback, Ok(value));
+            let value = inner.lock().await.get_for_update(key).await;
+            send_result(queue, callback, value);
         });
 
         Ok(cx.undefined())
@@ -269,8 +269,8 @@ impl Transaction {
         let queue = cx.queue();
 
         RUNTIME.spawn(async move {
-            let value = inner.lock().await.key_exists(key).await.unwrap();
-            send_result(queue, callback, Ok(value));
+            let value = inner.lock().await.key_exists(key).await;
+            send_result(queue, callback, value);
         });
 
         Ok(cx.undefined())

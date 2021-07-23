@@ -27,7 +27,7 @@ impl RawClient {
         let cf = cx.argument::<JsString>(2)?.value(&mut cx);
         let callback = cx.argument::<JsFunction>(3)?.root(&mut cx);
 
-        let inner = client.inner.with_cf(cf.try_into().unwrap());
+        let inner = client.inner.with_cf(cf.try_into().unwrap()); // TODO: #22 make CF optional
         let queue = cx.queue();
 
         RUNTIME.spawn(async move {

@@ -19,3 +19,4 @@ features = ["napi-6", "event-queue-api"]
 tikv-client = { git="https://github.com/tikv/client-rust.git", branch="master" }
 tokio = { version="1.6.1", features=["full"] }
 lazy_static = "1"
+once_cell = "1.8.0"

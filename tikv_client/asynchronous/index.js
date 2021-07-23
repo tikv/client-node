@@ -3,6 +3,9 @@
 const { promisify } = require("util");
 
 const inner = require("../../index.node");
+const { OperationAfterCommitError } = require("../error");
+
+inner.init(OperationAfterCommitError);
 
 const connect_async = promisify(inner.raw_connect);
 const get_async = promisify(inner.raw_get);

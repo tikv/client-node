@@ -1,6 +1,10 @@
 "use strict";
 
 const inner = require("../index.node");
+const { OperationAfterCommitError } = require("./error");
+
+inner.init(OperationAfterCommitError);
+
 var deasync = require('deasync');
 const raw_connect_sync = deasync(inner.raw_connect);
 const get_sync = deasync(inner.raw_get);
@@ -179,7 +183,6 @@ class TransactionClient {
     return txn_gc_sync.call(this.boxed, safepoint);
   }
 }
-
   
 module.exports = {
   RawClient: RawClient,
