@@ -4,10 +4,10 @@ use error::init;
 use neon::prelude::*;
 use tokio::sync::Mutex;
 
+mod error;
 mod raw;
 mod transaction;
 mod utils;
-mod error;
 
 pub struct RawClient {
     inner: Arc<tikv_client::RawClient>,

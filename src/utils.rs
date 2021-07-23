@@ -12,7 +12,10 @@ use tikv_client::{Key, KvPair};
 
 use tikv_client::TimestampExt;
 
-use crate::{RawClient, Snapshot, Transaction, TransactionClient, error::TRANSACTION_ERROR, error::CustomError};
+use crate::{
+    error::CustomError, error::TRANSACTION_ERROR, RawClient, Snapshot, Transaction,
+    TransactionClient,
+};
 use lazy_static::lazy_static;
 use tokio::{runtime::Runtime, sync::Mutex};
 
@@ -239,15 +242,15 @@ pub fn send_result<T: ToJS>(
         let args: Vec<Handle<JsValue>> = match result {
             Ok(values) => vec![cx.null().upcast(), values],
             Err(err) => match err {
-                tikv_client::Error::OperationAfterCommitError =>  vec![
+                tikv_client::Error::OperationAfterCommitError => vec![
                     TRANSACTION_ERROR.throw(&mut cx).unwrap().upcast(),
                     cx.undefined().upcast(),
                 ],
-                _ =>  vec![
+                _ => vec![
                     cx.error(err.to_string()).unwrap().upcast(),
                     cx.undefined().upcast(),
                 ],
-            }
+            },
         };
         callback.call(&mut cx, this, args)?;
         Ok(())
