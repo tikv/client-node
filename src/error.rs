@@ -1,19 +1,15 @@
 use neon::prelude::*;
 use once_cell::sync::OnceCell;
 
-// Globally store a static reference to the `MyError` class
+// Globally store a static reference to the `TRANSACTION_ERROR` class
 pub static TRANSACTION_ERROR: OnceCell<Root<JsFunction>> = OnceCell::new();
 
-// Extension trait to allow throwing custom errors like `TRANSACTION_ERROR.throw(&mut cx)`
 pub trait CustomError {
-    // This doesn't take any arguments, but could easily take a message
     fn throw<'a, C>(&self, cx: &mut C) -> JsResult<'a, JsObject>
     where
         C: Context<'a>;
 }
 
-// Implement `CustomError` for ALL errors in a `OnceCell`. This only needs to be
-// done _once_ even if other errors are added.
 impl CustomError for OnceCell<Root<JsFunction>> {
     fn throw<'a, C>(&self, cx: &mut C) -> JsResult<'a, JsObject>
     where
@@ -30,9 +26,6 @@ impl CustomError for OnceCell<Root<JsFunction>> {
     }
 }
 
-// This method should be manually called _once_ from JavaScript to initialize the module
-// It expects a single argument, the `MyError` class constructor
-// This is a very common pattern in Neon modules
 pub fn init(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     TRANSACTION_ERROR.get_or_try_init(|| Ok(cx.argument::<JsFunction>(0)?.root(&mut cx)))?;
 
