@@ -1,16 +1,16 @@
 "use strict";
 
 
+// TODO: #23 Implement UndertminedError
+// 
 
 // Create a custom error
-class OperationAfterCommitError extends Error {
+class TransactionError extends Error {
     constructor(message) {
         super(message);
-        this.message = "Cannot read or write data after any attempt to commit or roll back the transaction";
     }
 }
 
 module.exports = {
-    OperationAfterCommitError: OperationAfterCommitError
-  };
-  
+    TransactionError: TransactionError
+};

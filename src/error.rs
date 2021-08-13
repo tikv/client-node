@@ -1,3 +1,5 @@
+use std::iter::FromIterator;
+
 use neon::prelude::*;
 use once_cell::sync::OnceCell;
 
@@ -5,17 +7,18 @@ use once_cell::sync::OnceCell;
 pub static TRANSACTION_ERROR: OnceCell<Root<JsFunction>> = OnceCell::new();
 
 pub trait CustomError {
-    fn throw<'a, C>(&self, cx: &mut C) -> JsResult<'a, JsObject>
+    fn throw<'a, C>(&self, cx: &mut C, args: Vec<String>) -> JsResult<'a, JsObject>
     where
         C: Context<'a>;
 }
 
 impl CustomError for OnceCell<Root<JsFunction>> {
-    fn throw<'a, C>(&self, cx: &mut C) -> JsResult<'a, JsObject>
+    fn throw<'a, C>(&self, cx: &mut C, args: Vec<String>) -> JsResult<'a, JsObject>
     where
         C: Context<'a>,
     {
-        let args = Vec::<Handle<JsValue>>::with_capacity(0);
+        let args: Vec<Handle<JsValue>> = args.into_iter().map(|s| cx.string(s).upcast()).collect();
+
         let error = self
             .get()
             .expect("Expected module to be initialized")

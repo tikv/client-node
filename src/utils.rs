@@ -238,14 +238,48 @@ pub fn send_result<T: ToJS>(
         let result = result.map(|op| op.to_js_value(&mut cx));
         let callback = callback.into_inner(&mut cx);
         let this = cx.undefined();
-        let error_args = Vec::<Handle<JsValue>>::with_capacity(0);
         let args: Vec<Handle<JsValue>> = match result {
             Ok(values) => vec![cx.null().upcast(), values],
             Err(err) => match err {
-                tikv_client::Error::OperationAfterCommitError => vec![
-                    TRANSACTION_ERROR.throw(&mut cx).unwrap().upcast(),
+                err @ tikv_client::Error::OperationAfterCommitError => vec![
+                    TRANSACTION_ERROR
+                        .throw(&mut cx, vec![err.to_string()])
+                        .unwrap()
+                        .upcast(),
                     cx.undefined().upcast(),
                 ],
+                tikv_client::Error::KeyError(e) => {
+                    if let Some(conflict) = e.conflict {
+                        vec![
+                            TRANSACTION_ERROR
+                                .throw(&mut cx, vec![format!("WriteConlict: {:?}", conflict)])
+                                .unwrap()
+                                .upcast(),
+                            cx.undefined().upcast(),
+                        ]
+                    } else if let Some(already_exist) = e.already_exist {
+                        vec![
+                            TRANSACTION_ERROR
+                                .throw(&mut cx, vec![format!("AlreadyExist: {:?}", already_exist)])
+                                .unwrap()
+                                .upcast(),
+                            cx.undefined().upcast(),
+                        ]
+                    } else if let Some(deadlock) = e.deadlock {
+                        vec![
+                            TRANSACTION_ERROR
+                                .throw(&mut cx, vec![format!("Daedlock: {:?}", deadlock)])
+                                .unwrap()
+                                .upcast(),
+                            cx.undefined().upcast(),
+                        ]
+                    } else {
+                        vec![
+                            cx.error(format!("KeyError: {:?}", e)).unwrap().upcast(),
+                            cx.undefined().upcast(),
+                        ]
+                    }
+                }
                 _ => vec![
                     cx.error(err.to_string()).unwrap().upcast(),
                     cx.undefined().upcast(),

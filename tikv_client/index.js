@@ -1,9 +1,9 @@
 "use strict";
 
 const inner = require("../index.node");
-const { OperationAfterCommitError } = require("./error");
+const { TransactionError } = require("./error");
 
-inner.init(OperationAfterCommitError);
+inner.init(TransactionError);
 
 var deasync = require('deasync');
 const raw_connect_sync = deasync(inner.raw_connect);
