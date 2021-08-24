@@ -1,9 +1,8 @@
 "use strict";
 
 const inner = require("../index.node");
-const { TransactionError } = require("./error");
-
-inner.init(TransactionError);
+const { OperationAfterCommitError, UndertminedError, WriteConflictError, AlreadyExistError, DeadlockError } = require("./error");
+inner.init(OperationAfterCommitError, UndertminedError, WriteConflictError, AlreadyExistError, DeadlockError);
 
 var deasync = require('deasync');
 const raw_connect_sync = deasync(inner.raw_connect);

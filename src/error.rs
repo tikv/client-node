@@ -1,10 +1,22 @@
-use std::iter::FromIterator;
-
 use neon::prelude::*;
 use once_cell::sync::OnceCell;
 
 // Globally store a static reference to the `TRANSACTION_ERROR` class
-pub static TRANSACTION_ERROR: OnceCell<Root<JsFunction>> = OnceCell::new();
+pub struct ClientErrors {
+    pub operation_after_commit_error: OnceCell<Root<JsFunction>>,
+    pub undetermined_error: OnceCell<Root<JsFunction>>,
+    pub write_conlict_error: OnceCell<Root<JsFunction>>,
+    pub already_exist_error: OnceCell<Root<JsFunction>>,
+    pub daedlock_error: OnceCell<Root<JsFunction>>,
+}
+
+pub static CLIENT_ERRORS: ClientErrors = ClientErrors {
+    operation_after_commit_error: OnceCell::new(),
+    undetermined_error: OnceCell::new(),
+    write_conlict_error: OnceCell::new(),
+    already_exist_error: OnceCell::new(),
+    daedlock_error: OnceCell::new(),
+};
 
 pub trait CustomError {
     fn throw<'a, C>(&self, cx: &mut C, args: Vec<String>) -> JsResult<'a, JsObject>
@@ -30,7 +42,20 @@ impl CustomError for OnceCell<Root<JsFunction>> {
 }
 
 pub fn init(mut cx: FunctionContext) -> JsResult<JsUndefined> {
-    TRANSACTION_ERROR.get_or_try_init(|| Ok(cx.argument::<JsFunction>(0)?.root(&mut cx)))?;
-
+    CLIENT_ERRORS
+        .operation_after_commit_error
+        .get_or_try_init(|| Ok(cx.argument::<JsFunction>(0)?.root(&mut cx)))?;
+    CLIENT_ERRORS
+        .undetermined_error
+        .get_or_try_init(|| Ok(cx.argument::<JsFunction>(1)?.root(&mut cx)))?;
+    CLIENT_ERRORS
+        .write_conlict_error
+        .get_or_try_init(|| Ok(cx.argument::<JsFunction>(2)?.root(&mut cx)))?;
+    CLIENT_ERRORS
+        .already_exist_error
+        .get_or_try_init(|| Ok(cx.argument::<JsFunction>(3)?.root(&mut cx)))?;
+    CLIENT_ERRORS
+        .daedlock_error
+        .get_or_try_init(|| Ok(cx.argument::<JsFunction>(4)?.root(&mut cx)))?;
     Ok(cx.undefined())
 }

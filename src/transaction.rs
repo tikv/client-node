@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{
     utils::{js_array_to_rust_keys, send_result, to_bound_range, RUNTIME},
     Snapshot, Transaction, TransactionClient,

@@ -1,5 +1,5 @@
 const assert = require("assert");
-const { TransactionError } = require("../tikv_client/error");
+const { OperationAfterCommitError } = require("../tikv_client/error");
 
 
 // const tikv = require("../tikv_client/asynchronous");
@@ -18,4 +18,4 @@ const client = new tikv.TransactionClient("127.0.0.1:2379");
 const txn = client.begin(true);
 txn.put("k1", "v1");
 txn.commit();
-assert.throws(() => txn.get("k1"), TransactionError);
+assert.throws(() => txn.get("k1"), OperationAfterCommitError);

@@ -13,8 +13,7 @@ use tikv_client::{Key, KvPair};
 use tikv_client::TimestampExt;
 
 use crate::{
-    error::CustomError, error::TRANSACTION_ERROR, RawClient, Snapshot, Transaction,
-    TransactionClient,
+    error::CustomError, error::CLIENT_ERRORS, RawClient, Snapshot, Transaction, TransactionClient,
 };
 use lazy_static::lazy_static;
 use tokio::{runtime::Runtime, sync::Mutex};
@@ -242,15 +241,20 @@ pub fn send_result<T: ToJS>(
             Ok(values) => vec![cx.null().upcast(), values],
             Err(err) => match err {
                 err @ tikv_client::Error::OperationAfterCommitError => vec![
-                    TRANSACTION_ERROR
+                    CLIENT_ERRORS
+                        .operation_after_commit_error
                         .throw(&mut cx, vec![err.to_string()])
                         .unwrap()
                         .upcast(),
                     cx.undefined().upcast(),
                 ],
                 tikv_client::Error::UndeterminedError(e) => vec![
-                    TRANSACTION_ERROR
-                        .throw(&mut cx, vec![format!("WriteConlict: {:?}", &e.to_string())])
+                    CLIENT_ERRORS
+                        .undetermined_error
+                        .throw(
+                            &mut cx,
+                            vec![format!("UndeterminedError: {:?}", &e.to_string())],
+                        )
                         .unwrap()
                         .upcast(),
                     cx.undefined().upcast(),
@@ -258,7 +262,8 @@ pub fn send_result<T: ToJS>(
                 tikv_client::Error::KeyError(e) => {
                     if let Some(conflict) = e.conflict {
                         vec![
-                            TRANSACTION_ERROR
+                            CLIENT_ERRORS
+                                .write_conlict_error
                                 .throw(&mut cx, vec![format!("WriteConlict: {:?}", conflict)])
                                 .unwrap()
                                 .upcast(),
@@ -266,7 +271,8 @@ pub fn send_result<T: ToJS>(
                         ]
                     } else if let Some(already_exist) = e.already_exist {
                         vec![
-                            TRANSACTION_ERROR
+                            CLIENT_ERRORS
+                                .already_exist_error
                                 .throw(&mut cx, vec![format!("AlreadyExist: {:?}", already_exist)])
                                 .unwrap()
                                 .upcast(),
@@ -274,7 +280,8 @@ pub fn send_result<T: ToJS>(
                         ]
                     } else if let Some(deadlock) = e.deadlock {
                         vec![
-                            TRANSACTION_ERROR
+                            CLIENT_ERRORS
+                                .daedlock_error
                                 .throw(&mut cx, vec![format!("Daedlock: {:?}", deadlock)])
                                 .unwrap()
                                 .upcast(),
