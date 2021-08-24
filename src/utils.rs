@@ -12,7 +12,7 @@ use tikv_client::{Key, KvPair};
 
 use tikv_client::TimestampExt;
 
-use crate::{RawClient, Transaction, TransactionClient};
+use crate::{RawClient, Snapshot, Transaction, TransactionClient};
 use lazy_static::lazy_static;
 use tokio::{runtime::Runtime, sync::Mutex};
 
@@ -43,6 +43,18 @@ impl ToJS for () {
 impl ToJS for Vec<Key> {
     fn to_js_value<'a>(self, cx: &mut TaskContext<'a>) -> Handle<'a, JsValue> {
         rust_keys_to_js_array(cx, self).upcast()
+    }
+}
+
+impl ToJS for Key {
+    fn to_js_value<'a>(self, cx: &mut TaskContext<'a>) -> Handle<'a, JsValue> {
+        bytes_to_js_string(cx, self.into())
+    }
+}
+
+impl ToJS for tikv_client::Value {
+    fn to_js_value<'a>(self, cx: &mut TaskContext<'a>) -> Handle<'a, JsValue> {
+        bytes_to_js_string(cx, self.into())
     }
 }
 
@@ -79,6 +91,15 @@ impl ToJS for tikv_client::Transaction {
     }
 }
 
+impl ToJS for tikv_client::Snapshot {
+    fn to_js_value<'a>(self, cx: &mut TaskContext<'a>) -> Handle<'a, JsValue> {
+        cx.boxed(Snapshot {
+            inner: Arc::new(Mutex::new(self)),
+        })
+        .upcast()
+    }
+}
+
 impl<T: ToJS> ToJS for Option<T> {
     fn to_js_value<'a>(self, cx: &mut TaskContext<'a>) -> Handle<'a, JsValue> {
         match self {
@@ -91,6 +112,12 @@ impl<T: ToJS> ToJS for Option<T> {
 impl ToJS for tikv_client::Timestamp {
     fn to_js_value<'a>(self, cx: &mut TaskContext<'a>) -> Handle<'a, JsValue> {
         cx.number(self.version() as f64).upcast()
+    }
+}
+
+impl ToJS for bool {
+    fn to_js_value<'a>(self, cx: &mut TaskContext<'a>) -> Handle<'a, JsValue> {
+        cx.boolean(self).upcast()
     }
 }
 
@@ -116,12 +143,8 @@ pub fn rust_pairs_to_js_array<'a>(
 
 pub fn rust_keys_to_js_array<'a>(cx: &mut TaskContext<'a>, keys: Vec<Key>) -> Handle<'a, JsArray> {
     let js_array = JsArray::new(cx, keys.len() as u32);
-    for (i, obj) in keys.iter().enumerate() {
-        let v1 = cx.string(
-            std::str::from_utf8(&Vec::from(obj.clone()))
-                .unwrap()
-                .to_owned(),
-        );
+    for (i, obj) in keys.into_iter().enumerate() {
+        let v1 = obj.to_js_value(cx);
         js_array.set(cx, i as u32, v1).unwrap();
     }
     js_array

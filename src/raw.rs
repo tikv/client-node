@@ -1,8 +1,5 @@
 use crate::{
-    utils::{
-        bytes_to_js_string, js_array_to_rust_keys, js_array_to_rust_pairs, send_result,
-        to_bound_range, RUNTIME,
-    },
+    utils::{js_array_to_rust_keys, js_array_to_rust_pairs, send_result, to_bound_range, RUNTIME},
     RawClient,
 };
 use neon::prelude::*;
@@ -12,7 +9,7 @@ impl RawClient {
     pub fn connect(mut cx: FunctionContext) -> JsResult<JsUndefined> {
         let pd_endpoint = cx.argument::<JsString>(0)?.value(&mut cx);
         let callback = cx.argument::<JsFunction>(1)?.root(&mut cx);
-        let result = tikv_client::RawClient::new(vec![pd_endpoint]);
+        let result = tikv_client::RawClient::new(vec![pd_endpoint], None);
         let queue = cx.queue();
         RUNTIME.spawn(async move {
             let result = result.await;
@@ -54,25 +51,7 @@ impl RawClient {
 
         RUNTIME.spawn(async move {
             let value: Option<Vec<u8>> = inner.get(key).await.unwrap();
-            queue.send(move |mut cx| {
-                let callback = callback.into_inner(&mut cx);
-                let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = match value {
-                    Some(content) => {
-                        // let js_array = JsArray::new(&mut cx, content.len() as u32);
-                        // for (i, obj) in content.iter().enumerate() {
-                        //     let js_string = cx.number(*obj as f64);
-                        //     js_array.set(&mut cx, i as u32, js_string).unwrap();
-                        // }
-                        // vec![cx.undefined().upcast(), js_array.upcast()]
-
-                        vec![cx.null().upcast(), bytes_to_js_string(&mut cx, content)]
-                    }
-                    None => vec![cx.null().upcast(), cx.undefined().upcast()],
-                };
-                callback.call(&mut cx, this, args)?;
-                Ok(())
-            });
+            send_result(queue, callback, Ok(value));
         });
 
         Ok(cx.undefined())

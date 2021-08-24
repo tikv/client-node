@@ -1,20 +1,19 @@
 use std::sync::Arc;
 
 use crate::{
-    utils::{bytes_to_js_string, js_array_to_rust_keys, send_result, to_bound_range, RUNTIME},
+    utils::{js_array_to_rust_keys, send_result, to_bound_range, RUNTIME},
     Snapshot, Transaction, TransactionClient,
 };
 use neon::prelude::*;
 use tikv_client::TimestampExt as _;
 use tikv_client::TransactionOptions;
 use tikv_client::{Key, KvPair};
-use tokio::sync::Mutex;
 
 impl TransactionClient {
     pub fn connect(mut cx: FunctionContext) -> JsResult<JsUndefined> {
         let pd_endpoint = cx.argument::<JsString>(0)?.value(&mut cx);
         let callback = cx.argument::<JsFunction>(1)?.root(&mut cx);
-        let result = tikv_client::TransactionClient::new(vec![pd_endpoint]);
+        let result = tikv_client::TransactionClient::new(vec![pd_endpoint], None);
         let queue = cx.queue();
         RUNTIME.spawn(async move {
             let result = result.await;
@@ -62,19 +61,7 @@ impl TransactionClient {
                     TransactionOptions::new_optimistic()
                 },
             );
-            queue.send(move |mut cx| {
-                let callback = callback.into_inner(&mut cx);
-                let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = vec![
-                    cx.null().upcast(),
-                    cx.boxed(Snapshot {
-                        inner: Arc::new(Mutex::new(inner)),
-                    })
-                    .upcast(),
-                ];
-                callback.call(&mut cx, this, args)?;
-                Ok(())
-            });
+            send_result(queue, callback, Ok(inner)).unwrap();
         });
         Ok(cx.undefined())
     }
@@ -107,19 +94,7 @@ impl TransactionClient {
             let result = inner
                 .gc(tikv_client::Timestamp::from_version(safepoint))
                 .await;
-            queue.send(move |mut cx| {
-                let callback = callback.into_inner(&mut cx);
-                let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = match result {
-                    Ok(content) => vec![cx.null().upcast(), cx.boolean(content).upcast()],
-                    Err(err) => vec![
-                        cx.error(err.to_string()).unwrap().upcast(),
-                        cx.undefined().upcast(),
-                    ],
-                };
-                callback.call(&mut cx, this, args)?;
-                Ok(())
-            });
+            send_result(queue, callback, result).unwrap();
         });
         Ok(cx.undefined())
     }
@@ -136,18 +111,7 @@ impl Snapshot {
 
         RUNTIME.spawn(async move {
             let value = inner.lock().await.get(key).await.unwrap();
-            queue.send(move |mut cx| {
-                let callback = callback.into_inner(&mut cx);
-                let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = match value {
-                    Some(content) => {
-                        vec![cx.null().upcast(), bytes_to_js_string(&mut cx, content)]
-                    }
-                    None => vec![cx.null().upcast(), cx.undefined().upcast()],
-                };
-                callback.call(&mut cx, this, args)?;
-                Ok(())
-            });
+            send_result(queue, callback, Ok(value));
         });
 
         Ok(cx.undefined())
@@ -163,14 +127,7 @@ impl Snapshot {
 
         RUNTIME.spawn(async move {
             let value = inner.lock().await.key_exists(key).await.unwrap();
-            queue.send(move |mut cx| {
-                let callback = callback.into_inner(&mut cx);
-                let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> =
-                    vec![cx.null().upcast(), cx.boolean(value).upcast()];
-                callback.call(&mut cx, this, args)?;
-                Ok(())
-            });
+            send_result(queue, callback, Ok(value));
         });
 
         Ok(cx.undefined())
@@ -277,25 +234,7 @@ impl Transaction {
 
         RUNTIME.spawn(async move {
             let value = inner.lock().await.get(key).await.unwrap();
-            queue.send(move |mut cx| {
-                let callback = callback.into_inner(&mut cx);
-                let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = match value {
-                    Some(content) => {
-                        // let js_array = JsArray::new(&mut cx, content.len() as u32);
-                        // for (i, obj) in content.iter().enumerate() {
-                        //     let js_string = cx.number(*obj as f64);
-                        //     js_array.set(&mut cx, i as u32, js_string).unwrap();
-                        // }
-                        // vec![cx.undefined().upcast(), js_array.upcast()]
-
-                        vec![cx.null().upcast(), bytes_to_js_string(&mut cx, content)]
-                    }
-                    None => vec![cx.null().upcast(), cx.undefined().upcast()],
-                };
-                callback.call(&mut cx, this, args)?;
-                Ok(())
-            });
+            send_result(queue, callback, Ok(value));
         });
 
         Ok(cx.undefined())
@@ -313,25 +252,7 @@ impl Transaction {
 
         RUNTIME.spawn(async move {
             let value = inner.lock().await.get_for_update(key).await.unwrap();
-            queue.send(move |mut cx| {
-                let callback = callback.into_inner(&mut cx);
-                let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = match value {
-                    Some(content) => {
-                        // let js_array = JsArray::new(&mut cx, content.len() as u32);
-                        // for (i, obj) in content.iter().enumerate() {
-                        //     let js_string = cx.number(*obj as f64);
-                        //     js_array.set(&mut cx, i as u32, js_string).unwrap();
-                        // }
-                        // vec![cx.undefined().upcast(), js_array.upcast()]
-
-                        vec![cx.null().upcast(), bytes_to_js_string(&mut cx, content)]
-                    }
-                    None => vec![cx.null().upcast(), cx.undefined().upcast()],
-                };
-                callback.call(&mut cx, this, args)?;
-                Ok(())
-            });
+            send_result(queue, callback, Ok(value));
         });
 
         Ok(cx.undefined())
@@ -349,14 +270,7 @@ impl Transaction {
 
         RUNTIME.spawn(async move {
             let value = inner.lock().await.key_exists(key).await.unwrap();
-            queue.send(move |mut cx| {
-                let callback = callback.into_inner(&mut cx);
-                let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> =
-                    vec![cx.null().upcast(), cx.boolean(value).upcast()];
-                callback.call(&mut cx, this, args)?;
-                Ok(())
-            });
+            send_result(queue, callback, Ok(value));
         });
 
         Ok(cx.undefined())
