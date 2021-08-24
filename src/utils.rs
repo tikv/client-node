@@ -1,6 +1,7 @@
 use std::ops::Bound;
 use std::{sync::Arc, u32};
 
+use neon::prelude::*;
 use neon::{
     context::{Context, TaskContext},
     prelude::Handle,
@@ -9,9 +10,11 @@ use neon::{
 };
 use tikv_client::{Key, KvPair};
 
-use crate::RawClient;
+use tikv_client::TimestampExt;
+
+use crate::{RawClient, Transaction, TransactionClient};
 use lazy_static::lazy_static;
-use tokio::runtime::Runtime;
+use tokio::{runtime::Runtime, sync::Mutex};
 
 lazy_static! {
     pub(crate) static ref RUNTIME: Runtime = Runtime::new().unwrap();
@@ -31,7 +34,10 @@ pub enum CommonTypes {
     Unit(()),
     Keys(Vec<Key>),
     KvPairs(Vec<KvPair>),
-    Client(tikv_client::RawClient),
+    RawClient(tikv_client::RawClient),
+    TransactionClient(tikv_client::TransactionClient),
+    Transaction(tikv_client::Transaction),
+    Timestamp(Option<tikv_client::Timestamp>),
 }
 
 impl From<()> for CommonTypes {
@@ -53,7 +59,22 @@ impl From<Vec<KvPair>> for CommonTypes {
 }
 impl From<tikv_client::RawClient> for CommonTypes {
     fn from(item: tikv_client::RawClient) -> Self {
-        CommonTypes::Client(item)
+        CommonTypes::RawClient(item)
+    }
+}
+impl From<tikv_client::TransactionClient> for CommonTypes {
+    fn from(item: tikv_client::TransactionClient) -> Self {
+        CommonTypes::TransactionClient(item)
+    }
+}
+impl From<tikv_client::Transaction> for CommonTypes {
+    fn from(item: tikv_client::Transaction) -> Self {
+        CommonTypes::Transaction(item)
+    }
+}
+impl From<Option<tikv_client::Timestamp>> for CommonTypes {
+    fn from(item: Option<tikv_client::Timestamp>) -> Self {
+        CommonTypes::Timestamp(item)
     }
 }
 
@@ -68,11 +89,25 @@ pub fn result_to_js_array<'a>(
                 CommonTypes::Unit(_) => cx.undefined().upcast(),
                 CommonTypes::Keys(keys) => rust_keys_to_js_array(cx, keys).upcast(),
                 CommonTypes::KvPairs(pairs) => rust_pairs_to_js_array(cx, pairs).upcast(),
-                CommonTypes::Client(client) => cx
+                CommonTypes::RawClient(client) => cx
                     .boxed(RawClient {
                         inner: Arc::new(client),
                     })
                     .upcast(),
+                CommonTypes::TransactionClient(client) => cx
+                    .boxed(TransactionClient {
+                        inner: Arc::new(client),
+                    })
+                    .upcast(),
+                CommonTypes::Transaction(client) => cx
+                    .boxed(Transaction {
+                        inner: Arc::new(Mutex::new(client)),
+                    })
+                    .upcast(),
+                CommonTypes::Timestamp(timestamp) => match timestamp {
+                    None => cx.undefined().upcast(),
+                    Some(t) => cx.number(t.version() as f64).upcast(),
+                },
             },
         ],
         Err(err) => vec![
@@ -188,4 +223,20 @@ pub fn to_bound_range(
         Bound::Unbounded
     };
     tikv_client::BoundRange::from((start_bound, end_bound))
+}
+
+pub fn send_result<T: Into<CommonTypes>>(
+    queue: EventQueue,
+    callback: Root<JsFunction>,
+    result: Result<T, tikv_client::Error>,
+) -> Result<(), neon::result::Throw> {
+    let result = result.map(|values| values.into());
+    queue.send(move |mut cx| {
+        let callback = callback.into_inner(&mut cx);
+        let this = cx.undefined();
+        let args: Vec<Handle<JsValue>> = result_to_js_array(&mut cx, result);
+        callback.call(&mut cx, this, args)?;
+        Ok(())
+    });
+    Ok(())
 }

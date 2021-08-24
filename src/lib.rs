@@ -1,14 +1,24 @@
 use std::sync::Arc;
 
 use neon::prelude::*;
+use tokio::sync::{Mutex, RwLock};
 
 mod raw;
+mod transaction;
 mod utils;
+
 pub struct RawClient {
     inner: Arc<tikv_client::RawClient>,
 }
 impl Finalize for RawClient {}
-
+pub struct TransactionClient {
+    inner: Arc<tikv_client::TransactionClient>,
+}
+impl Finalize for TransactionClient {}
+pub struct Transaction {
+    inner: Arc<Mutex<tikv_client::Transaction>>,
+}
+impl Finalize for Transaction {}
 #[neon::main]
 fn main(mut cx: ModuleContext) -> NeonResult<()> {
     cx.export_function("raw_connect", RawClient::connect)?;
@@ -21,5 +31,23 @@ fn main(mut cx: ModuleContext) -> NeonResult<()> {
     cx.export_function("raw_batch_put", RawClient::batch_put)?;
     cx.export_function("raw_batch_delete", RawClient::batch_delete)?;
     cx.export_function("raw_delete_range", RawClient::delete_range)?;
+
+    cx.export_function("txn_connect", TransactionClient::connect)?;
+    cx.export_function("txn_begin", TransactionClient::begin)?;
+    cx.export_function("txn_get", Transaction::get)?;
+    cx.export_function("txn_get_for_update", Transaction::get_for_update)?;
+    cx.export_function("txn_key_exists", Transaction::key_exists)?;
+    cx.export_function("txn_batch_get", Transaction::batch_get)?;
+    cx.export_function(
+        "txn_batch_get_for_update",
+        Transaction::batch_get_for_update,
+    )?;
+    cx.export_function("txn_scan", Transaction::scan)?;
+    cx.export_function("txn_scan_keys", Transaction::scan_keys)?;
+    cx.export_function("txn_lock_keys", Transaction::lock_keys)?;
+    cx.export_function("txn_put", Transaction::put)?;
+    cx.export_function("txn_insert", Transaction::insert)?;
+    cx.export_function("txn_delete", Transaction::delete)?;
+    cx.export_function("txn_commit", Transaction::commit)?;
     Ok(())
 }

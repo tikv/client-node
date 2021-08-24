@@ -1,7 +1,7 @@
 use crate::{
     utils::{
         bytes_to_js_string, js_array_to_rust_keys, js_array_to_rust_pairs, result_to_js_array,
-        to_bound_range, CommonTypes, RUNTIME,
+        send_result, to_bound_range, CommonTypes, RUNTIME,
     },
     RawClient,
 };
@@ -225,20 +225,4 @@ impl RawClient {
 
         Ok(cx.undefined())
     }
-}
-
-fn send_result<T: Into<CommonTypes>>(
-    queue: EventQueue,
-    callback: Root<JsFunction>,
-    result: Result<T, tikv_client::Error>,
-) -> Result<(), neon::result::Throw> {
-    let result = result.map(|values| values.into());
-    queue.send(move |mut cx| {
-        let callback = callback.into_inner(&mut cx);
-        let this = cx.undefined();
-        let args: Vec<Handle<JsValue>> = result_to_js_array(&mut cx, result);
-        callback.call(&mut cx, this, args)?;
-        Ok(())
-    });
-    Ok(())
 }
