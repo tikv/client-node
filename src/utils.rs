@@ -248,6 +248,13 @@ pub fn send_result<T: ToJS>(
                         .upcast(),
                     cx.undefined().upcast(),
                 ],
+                tikv_client::Error::UndeterminedError(e) => vec![
+                    TRANSACTION_ERROR
+                        .throw(&mut cx, vec![format!("WriteConlict: {:?}", &e.to_string())])
+                        .unwrap()
+                        .upcast(),
+                    cx.undefined().upcast(),
+                ],
                 tikv_client::Error::KeyError(e) => {
                     if let Some(conflict) = e.conflict {
                         vec![
