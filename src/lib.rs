@@ -202,20 +202,10 @@ impl RawClient {
                 let this = cx.undefined();
                 let args: Vec<Handle<JsValue>> = match result {
                     Ok(values) => {
-                        let js_array = JsArray::new(&mut cx, values.len() as u32);
-                        for (i, obj) in values.iter().enumerate() {
-                            let pair = JsArray::new(&mut cx, 2 as u32);
-                            let v1 = cx.string(
-                                std::str::from_utf8(&Vec::from(obj.0.clone()))
-                                    .unwrap()
-                                    .to_owned(),
-                            );
-                            let v2 = cx.string(std::str::from_utf8(&obj.1).unwrap().to_owned());
-                            pair.set(&mut cx, 0 as u32, v1)?;
-                            pair.set(&mut cx, 1 as u32, v2)?;
-                            js_array.set(&mut cx, i as u32, pair).unwrap();
-                        }
-                        vec![cx.null().upcast(), js_array.upcast()]
+                        vec![
+                            cx.null().upcast(),
+                            utils::kv_pairs_to_js_array(&mut cx, values).upcast(),
+                        ]
                     }
                     Err(err) => vec![cx.error(err.to_string())?.upcast()],
                 };
@@ -250,16 +240,10 @@ impl RawClient {
                 let this = cx.undefined();
                 let args: Vec<Handle<JsValue>> = match result {
                     Ok(values) => {
-                        let js_array = JsArray::new(&mut cx, values.len() as u32);
-                        for (i, obj) in values.iter().enumerate() {
-                            let v1 = cx.string(
-                                std::str::from_utf8(&Vec::from(obj.clone()))
-                                    .unwrap()
-                                    .to_owned(),
-                            );
-                            js_array.set(&mut cx, i as u32, v1).unwrap();
-                        }
-                        vec![cx.null().upcast(), js_array.upcast()]
+                        vec![
+                            cx.null().upcast(),
+                            utils::k_pairs_to_js_array(&mut cx, values).upcast(),
+                        ]
                     }
                     Err(err) => vec![cx.error(err.to_string())?.upcast()],
                 };
@@ -275,8 +259,30 @@ impl RawClient {
         let client = cx
             .this()
             .downcast_or_throw::<JsBox<RawClient>, _>(&mut cx)?;
+        let pairs = cx.argument::<JsArray>(0)?;
+        let pairs = utils::js_array_to_rust_pairs(&mut cx, pairs);
+        let cf = cx.argument::<JsString>(1)?.value(&mut cx);
 
-        todo!()
+        let callback = cx.argument::<JsFunction>(2)?.root(&mut cx);
+        let inner = client.inner.with_cf(cf.try_into().unwrap());
+        let queue = cx.queue();
+        RUNTIME.spawn(async move {
+            let result = inner.batch_put(pairs).await;
+            queue.send(move |mut cx| {
+                let callback = callback.into_inner(&mut cx);
+                let this = cx.undefined();
+                let args: Vec<Handle<JsValue>> = match result {
+                    Ok(_) => {
+                        vec![cx.null().upcast(), cx.undefined().upcast()]
+                    }
+                    Err(err) => vec![cx.error(err.to_string())?.upcast()],
+                };
+                callback.call(&mut cx, this, args)?;
+                Ok(())
+            });
+        });
+
+        Ok(cx.undefined())
     }
 
     pub fn batch_delete(mut cx: FunctionContext) -> JsResult<JsUndefined> {
