@@ -1,13 +1,15 @@
 use std::ops::Bound;
+use std::{sync::Arc, u32};
 
 use neon::{
     context::{Context, TaskContext},
     prelude::Handle,
     result::JsResultExt,
-    types::{JsArray, JsString, JsValue, Value},
+    types::{JsArray, JsString, JsValue},
 };
-use std::ops::Bound;
 use tikv_client::{Key, KvPair};
+
+use crate::RawClient;
 
 pub fn bytes_to_js_string<'a>(cx: &mut TaskContext<'a>, bytes: Vec<u8>) -> Handle<'a, JsValue> {
     let content = std::str::from_utf8(&bytes).unwrap().to_owned();
@@ -23,10 +25,11 @@ pub enum CommonTypes {
     Unit(()),
     Keys(Vec<Key>),
     KvPairs(Vec<KvPair>),
+    Client(tikv_client::RawClient),
 }
 
 impl From<()> for CommonTypes {
-    fn from(item: ()) -> Self {
+    fn from(_: ()) -> Self {
         CommonTypes::Unit(())
     }
 }
@@ -40,6 +43,11 @@ impl From<Vec<Key>> for CommonTypes {
 impl From<Vec<KvPair>> for CommonTypes {
     fn from(item: Vec<KvPair>) -> Self {
         CommonTypes::KvPairs(item)
+    }
+}
+impl From<tikv_client::RawClient> for CommonTypes {
+    fn from(item: tikv_client::RawClient) -> Self {
+        CommonTypes::Client(item)
     }
 }
 
@@ -57,23 +65,19 @@ pub fn result_to_js_array<'a>(
                 cx.null().upcast(),
                 rust_pairs_to_js_array(cx, pairs).upcast(),
             ],
+            CommonTypes::Client(client) => vec![
+                cx.null().upcast(),
+                cx.boxed(RawClient {
+                    inner: Arc::new(client),
+                })
+                .upcast(),
+            ],
         },
         Err(err) => vec![
             cx.error(err.to_string()).unwrap().upcast(),
             cx.undefined().upcast(),
         ],
     }
-}
-
-pub fn error_to_js_value<'a, T, C: Context<'a>>(
-    cx: &mut C,
-    err: tikv_client::Error,
-) -> Handle<'a, JsValue> {
-    cx.error(err.to_string()).unwrap().upcast()
-}
-
-pub fn unit_to_js_undefined<'a, T, C: Context<'a>>(cx: &mut C, _unit: T) -> Handle<'a, JsValue> {
-    cx.undefined().upcast()
 }
 
 pub fn rust_pairs_to_js_array<'a>(

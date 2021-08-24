@@ -1,8 +1,9 @@
 use std::{convert::TryInto, sync::Arc, u32};
 
 use lazy_static::lazy_static;
-use neon::{handle::Managed, prelude::*};
+use neon::prelude::*;
 use tokio::runtime::Runtime;
+use utils::CommonTypes;
 
 mod utils;
 
@@ -23,22 +24,7 @@ impl RawClient {
         let queue = cx.queue();
         RUNTIME.spawn(async move {
             let result = result.await;
-            queue.send(move |mut cx| {
-                let callback = callback.into_inner(&mut cx);
-                let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = match result {
-                    Ok(client) => vec![
-                        cx.null().upcast(),
-                        cx.boxed(RawClient {
-                            inner: Arc::new(client),
-                        })
-                        .upcast(),
-                    ],
-                    Err(err) => vec![cx.error(err.to_string())?.upcast()],
-                };
-                callback.call(&mut cx, this, args)?;
-                Ok(())
-            });
+            send_result(queue, callback, result).unwrap();
         });
         Ok(cx.undefined())
     }
@@ -56,17 +42,8 @@ impl RawClient {
         let queue = cx.queue();
 
         RUNTIME.spawn(async move {
-            let result = inner
-                .put(key, value)
-                .await
-                .map(|values| utils::CommonTypes::from(values));
-            queue.send(move |mut cx| {
-                let callback = callback.into_inner(&mut cx);
-                let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = utils::result_to_js_array(&mut cx, result);
-                callback.call(&mut cx, this, args)?;
-                Ok(())
-            });
+            let result = inner.put(key, value).await;
+            send_result(queue, callback, result).unwrap();
         });
 
         Ok(cx.undefined())
@@ -123,17 +100,8 @@ impl RawClient {
         let inner = client.inner.with_cf(cf.try_into().unwrap());
         let queue = cx.queue();
         RUNTIME.spawn(async move {
-            let result = inner
-                .delete(key)
-                .await
-                .map(|values| utils::CommonTypes::from(values));
-            queue.send(move |mut cx| {
-                let callback = callback.into_inner(&mut cx);
-                let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = utils::result_to_js_array(&mut cx, result);
-                callback.call(&mut cx, this, args)?;
-                Ok(())
-            });
+            let result = inner.delete(key).await;
+            send_result(queue, callback, result).unwrap();
         });
 
         Ok(cx.undefined())
@@ -152,17 +120,8 @@ impl RawClient {
         let queue = cx.queue();
 
         RUNTIME.spawn(async move {
-            let result = inner
-                .batch_get(keys)
-                .await
-                .map(|values| utils::CommonTypes::from(values));
-            queue.send(move |mut cx| {
-                let callback = callback.into_inner(&mut cx);
-                let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = utils::result_to_js_array(&mut cx, result);
-                callback.call(&mut cx, this, args)?;
-                Ok(())
-            });
+            let result = inner.batch_get(keys).await;
+            send_result(queue, callback, result).unwrap();
         });
 
         Ok(cx.undefined())
@@ -185,17 +144,8 @@ impl RawClient {
         RUNTIME.spawn(async move {
             let range = utils::to_bound_range(Some(start), Some(end), include_start, include_end);
 
-            let result = inner
-                .scan(range, limit)
-                .await
-                .map(|values| utils::CommonTypes::from(values));
-            queue.send(move |mut cx| {
-                let callback = callback.into_inner(&mut cx);
-                let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = utils::result_to_js_array(&mut cx, result);
-                callback.call(&mut cx, this, args)?;
-                Ok(())
-            });
+            let result = inner.scan(range, limit).await;
+            send_result(queue, callback, result).unwrap();
         });
 
         Ok(cx.undefined())
@@ -218,17 +168,8 @@ impl RawClient {
         RUNTIME.spawn(async move {
             let range = utils::to_bound_range(Some(start), Some(end), include_start, include_end);
 
-            let result = inner
-                .scan_keys(range, limit)
-                .await
-                .map(|values| utils::CommonTypes::from(values));
-            queue.send(move |mut cx| {
-                let callback = callback.into_inner(&mut cx);
-                let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = utils::result_to_js_array(&mut cx, result);
-                callback.call(&mut cx, this, args)?;
-                Ok(())
-            });
+            let result = inner.scan_keys(range, limit).await;
+            send_result(queue, callback, result).unwrap();
         });
 
         Ok(cx.undefined())
@@ -246,17 +187,8 @@ impl RawClient {
         let inner = client.inner.with_cf(cf.try_into().unwrap());
         let queue = cx.queue();
         RUNTIME.spawn(async move {
-            let result = inner
-                .batch_put(pairs)
-                .await
-                .map(|values| utils::CommonTypes::from(values));
-            queue.send(move |mut cx| {
-                let callback = callback.into_inner(&mut cx);
-                let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = utils::result_to_js_array(&mut cx, result);
-                callback.call(&mut cx, this, args)?;
-                Ok(())
-            });
+            let result = inner.batch_put(pairs).await;
+            send_result(queue, callback, result).unwrap();
         });
 
         Ok(cx.undefined())
@@ -274,17 +206,8 @@ impl RawClient {
         let inner = client.inner.with_cf(cf.try_into().unwrap());
         let queue = cx.queue();
         RUNTIME.spawn(async move {
-            let result = inner
-                .batch_delete(keys)
-                .await
-                .map(|values| utils::CommonTypes::from(values));
-            queue.send(move |mut cx| {
-                let callback = callback.into_inner(&mut cx);
-                let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = utils::result_to_js_array(&mut cx, result);
-                callback.call(&mut cx, this, args)?;
-                Ok(())
-            });
+            let result = inner.batch_delete(keys).await;
+            send_result(queue, callback, result).unwrap();
         });
 
         Ok(cx.undefined())
@@ -294,33 +217,41 @@ impl RawClient {
         let client = cx
             .this()
             .downcast_or_throw::<JsBox<RawClient>, _>(&mut cx)?;
+        let queue = cx.queue();
         let start = cx.argument::<JsString>(0)?.value(&mut cx).into_bytes();
         let end = cx.argument::<JsString>(1)?.value(&mut cx).into_bytes();
         let include_start = cx.argument::<JsBoolean>(2)?.value(&mut cx);
         let include_end = cx.argument::<JsBoolean>(3)?.value(&mut cx);
         let cf = cx.argument::<JsString>(4)?.value(&mut cx);
+        let inner = client.inner.with_cf(cf.try_into().unwrap());
 
         let callback = cx.argument::<JsFunction>(5)?.root(&mut cx);
-        let inner = client.inner.with_cf(cf.try_into().unwrap());
-        let queue = cx.queue();
+
         RUNTIME.spawn(async move {
             let range = utils::to_bound_range(Some(start), Some(end), include_start, include_end);
 
-            let result = inner
-                .delete_range(range)
-                .await
-                .map(|values| utils::CommonTypes::from(values));
-            queue.send(move |mut cx| {
-                let callback = callback.into_inner(&mut cx);
-                let this = cx.undefined();
-                let args: Vec<Handle<JsValue>> = utils::result_to_js_array(&mut cx, result);
-                callback.call(&mut cx, this, args)?;
-                Ok(())
-            });
+            let result = inner.delete_range(range).await;
+            send_result(queue, callback, result).unwrap();
         });
 
         Ok(cx.undefined())
     }
+}
+
+fn send_result<T: Into<CommonTypes>>(
+    queue: EventQueue,
+    callback: Root<JsFunction>,
+    result: Result<T, tikv_client::Error>,
+) -> Result<(), neon::result::Throw> {
+    let result = result.map(|values| values.into());
+    queue.send(move |mut cx| {
+        let callback = callback.into_inner(&mut cx);
+        let this = cx.undefined();
+        let args: Vec<Handle<JsValue>> = utils::result_to_js_array(&mut cx, result);
+        callback.call(&mut cx, this, args)?;
+        Ok(())
+    });
+    Ok(())
 }
 
 #[neon::main]
