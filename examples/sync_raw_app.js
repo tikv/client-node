@@ -1,4 +1,4 @@
-const tikv = require("../tikv_client");
+const tikv = require("../dist");
 
 const client = new tikv.RawClient("127.0.0.1:2379");
 
@@ -20,14 +20,19 @@ const v2_ = client.get("k2", "default");
 
 console.log(v1_, v2_, v3);
 
-client.batch_put([["k3", "k4", "k5"], ["v3", "v4", "v5"]], "default");
+client.batch_put(
+  [
+    ["k3", "k4", "k5"],
+    ["v3", "v4", "v5"],
+  ],
+  "default"
+);
 const vals = client.batch_get(["k3", "k4", "k5"], "default");
 for (let i = 0; i < vals.length; i++) {
-    console.log(vals[i]);
+  console.log(vals[i]);
 }
 
 const scan_vals = client.scan("k1", "k5", 10, true, true, "default");
 for (let i = 0; i < scan_vals.length; i++) {
-    console.log(scan_vals[i]);
-}   
-
+  console.log(scan_vals[i]);
+}

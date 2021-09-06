@@ -1,4 +1,4 @@
-const tikv = require("../tikv_client/asynchronous");
+const tikv = require("../dist/asynchronous");
 
 (async () => {
   const client = await new tikv.RawClient("127.0.0.1:2379");
@@ -30,4 +30,3 @@ const tikv = require("../tikv_client/asynchronous");
 
   console.log(values);
 })();
-

@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "target": "es6",
+        "module": "commonjs",
+        "strict": true,
+        "declaration": true,
+        "outDir": "./dist",
+        "esModuleInterop": true,
+    },
+    "include": [
+        "tikv_client/**/*",
+        "typing.d.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "**/*.spec.ts"
+    ]
+}

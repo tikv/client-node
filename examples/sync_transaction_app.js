@@ -1,4 +1,4 @@
-const tikv = require("../tikv_client");
+const tikv = require("../dist");
 
 const client = new tikv.TransactionClient("127.0.0.1:2379");
 const txn = client.begin(true);
@@ -13,11 +13,11 @@ const snapshot = client.snapshot(client.current_timestamp(), true);
 const result = snapshot.get("k3");
 console.log(result);
 const values = snapshot.batch_get(["k1", "k4"]);
-values.forEach(element => {
-    console.log(element);
+values.forEach((element) => {
+  console.log(element);
 });
 
 const result2 = snapshot.scan("k1", "k2", 10, true, true);
-result2.forEach(element => {
-    console.log(element);
+result2.forEach((element) => {
+  console.log(element);
 });

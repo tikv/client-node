@@ -4,15 +4,19 @@
   "description": "A TiKV client in Node.js.",
   "main": "index.js",
   "scripts": {
-    "build": "cargo-cp-artifact -nc index.node -- cargo build --message-format=json-render-diagnostics",
+    "build": "cargo-cp-artifact -nc index.node -- cargo build --message-format=json-render-diagnostics & tsc",
     "install": "npm run build",
-    "test": "cargo test",
-    "demo": "node app.js"
+    "docs": "jsdoc ./dist",
+    "demo": "node examples/raw_app.js",
+    "clean": "rm -rf ./out & rm -rf ./dist"
   },
   "author": "Mossaka",
   "license": "Apache-2.0",
   "devDependencies": {
-    "cargo-cp-artifact": "^0.1"
+    "@types/node": "^16.7.10",
+    "cargo-cp-artifact": "^0.1",
+    "jsdoc": "^3.6.7",
+    "typescript": "^4.4.2"
   },
   "repository": {
     "type": "git",
