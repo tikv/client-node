@@ -1,5 +1,8 @@
+// Copyright 2021 TiKV Project Authors. Licensed under Apache-2.0.
+
 "use strict";
-// @ts-ignore  
+
+// @ts-ignore
 const inner = require("../index.node");
 import { OperationAfterCommitError, UndertminedError, WriteConflictError, AlreadyExistError, DeadlockError } from "./error";
 inner.init(
