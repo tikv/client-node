@@ -1,7 +1,9 @@
+// Copyright 2021 TiKV Project Authors. Licensed under Apache-2.0.
+
 "use strict";
 
 const { promisify } = require("util");
-// @ts-ignore  
+// @ts-ignore
 const inner = require("../../index.node");
 const {
   OperationAfterCommitError,
@@ -58,7 +60,7 @@ const snapshot_scan_keys_async = promisify(inner.snapshot_scan_keys);
 export class RawClient {
   boxed: any;
   constructor(pd_endpoint: string) {
-    // @ts-ignore  
+    // @ts-ignore
     return (async () => {
       this.boxed = await connect_async(pd_endpoint);
       return this;
@@ -89,7 +91,14 @@ export class RawClient {
     return batch_delete_async.call(this.boxed, keys, cf);
   }
 
-  scan(start: string, end: string, limit: number, include_start: boolean, include_end: boolean, cf: string) {
+  scan(
+    start: string,
+    end: string,
+    limit: number,
+    include_start: boolean,
+    include_end: boolean,
+    cf: string
+  ) {
     return scan_async.call(
       this.boxed,
       start,
@@ -101,7 +110,14 @@ export class RawClient {
     );
   }
 
-  scan_keys(start: string, end: string, limit: number, include_start: boolean, include_end: boolean, cf: string) {
+  scan_keys(
+    start: string,
+    end: string,
+    limit: number,
+    include_start: boolean,
+    include_end: boolean,
+    cf: string
+  ) {
     return scan_keys_async.call(
       this.boxed,
       start,
@@ -113,7 +129,13 @@ export class RawClient {
     );
   }
 
-  delete_range(start: string, end: string, include_start: boolean, include_end: boolean, cf: string) {
+  delete_range(
+    start: string,
+    end: string,
+    include_start: boolean,
+    include_end: boolean,
+    cf: string
+  ) {
     return delete_range_async.call(
       this.boxed,
       start,
@@ -167,7 +189,13 @@ export class Transaction {
     return txn_batch_get_for_update_async.call(this.boxed, keys);
   }
 
-  scan(start: string, end: string, limit: number, include_start: boolean, include_end: boolean) {
+  scan(
+    start: string,
+    end: string,
+    limit: number,
+    include_start: boolean,
+    include_end: boolean
+  ) {
     return txn_scan_async.call(
       this.boxed,
       start,
@@ -178,7 +206,13 @@ export class Transaction {
     );
   }
 
-  scan_keys(start: string, end: string, limit: number, include_start: boolean, include_end: boolean) {
+  scan_keys(
+    start: string,
+    end: string,
+    limit: number,
+    include_start: boolean,
+    include_end: boolean
+  ) {
     return txn_scan_keys_async.call(
       this.boxed,
       start,
@@ -209,7 +243,13 @@ export class Snapshot {
   batch_get(keys: string[]) {
     return snapshot_batch_get_async.call(this.boxed, keys);
   }
-  scan(start: string, end: string, limit: number, include_start: boolean, include_end: boolean) {
+  scan(
+    start: string,
+    end: string,
+    limit: number,
+    include_start: boolean,
+    include_end: boolean
+  ) {
     return snapshot_scan_async.call(
       this.boxed,
       start,
@@ -219,7 +259,13 @@ export class Snapshot {
       include_end
     );
   }
-  scan_keys(start: string, end: string, limit: number, include_start: boolean, include_end: boolean) {
+  scan_keys(
+    start: string,
+    end: string,
+    limit: number,
+    include_start: boolean,
+    include_end: boolean
+  ) {
     return snapshot_scan_keys_async.call(
       this.boxed,
       start,
@@ -233,7 +279,7 @@ export class Snapshot {
 export class TransactionClient {
   boxed: any;
   constructor(pd_endpoint: string) {
-    // @ts-ignore 
+    // @ts-ignore
     return (async () => {
       this.boxed = await txn_connect_async(pd_endpoint);
       return this;
