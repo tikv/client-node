@@ -1,5 +1,5 @@
 [package]
-name = "client-node"
+name = "tikv-client"
 version = "0.0.0"
 description = "A TiKV client in Node.js."
 authors = ["Mossaka"]

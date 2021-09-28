@@ -1,6 +1,6 @@
 {
-  "name": "client-node",
-  "version": "0.1.0",
+  "name": "tikv-client",
+  "version": "0.0.0",
   "description": "A TiKV client in Node.js.",
   "main": "index.js",
   "scripts": {
@@ -20,12 +20,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Mossaka/client-node.git"
+    "url": "git+https://github.com/tikv/client-node.git"
   },
   "bugs": {
-    "url": "https://github.com/Mossaka/client-node/issues"
+    "url": "https://github.com/tikv/client-node/issues"
   },
-  "homepage": "https://github.com/Mossaka/client-node#readme",
+  "homepage": "https://github.com/tikv/client-node#readme",
   "dependencies": {
     "deasync": "^0.1.21"
   }

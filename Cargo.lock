@@ -166,17 +166,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "client-node"
-version = "0.0.0"
-dependencies = [
- "lazy_static",
- "neon",
- "once_cell",
- "tikv-client",
- "tokio",
-]
-
-[[package]]
 name = "cmake"
 version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1568,6 +1557,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8018d24e04c95ac8790716a5987d0fec4f8b27249ffa0f7d33f1369bdfb88cbd"
 dependencies = [
  "once_cell",
+]
+
+[[package]]
+name = "tikv-client"
+version = "0.0.0"
+dependencies = [
+ "lazy_static",
+ "neon",
+ "once_cell",
+ "tikv-client 0.1.0",
+ "tokio",
 ]
 
 [[package]]
